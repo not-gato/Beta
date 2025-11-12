@@ -12,6 +12,8 @@ UNXHUB BETA, THIS MAY FAIL OR BREAK THE GAME, USE ON YOUR OWN RISK!
 / This still doesnt have all features.
 ]]
 
+loadstring(game:HttpGet("https://github.com/not-gato/UNX/raw/refs/heads/main/Modules/v2/Log.lua",true))()
+
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
