@@ -33,11 +33,11 @@ Library.ForceCheckbox = true
 Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
-	Title = "mspaint",
-	Footer = "fixed & clean",
-	Icon = 95816097006870,
-	NotifySide = "Right",
-	ShowCustomCursor = true,
+    Title = "UNXHub",
+    Footer = "Beta UNXHub | This Will Change On The Future.",
+    Icon = 123333102279908,
+    NotifySide = "Right",
+    ShowCustomCursor = true,
 })
 
 local Tabs = {
