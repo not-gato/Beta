@@ -7,8 +7,7 @@ UNXHUB BETA, THIS MAY FAIL OR BREAK THE GAME, USE ON YOUR OWN RISK!
 \ This has better logic
 \ This is more stable
 \ Better code & stuff
-/ This still doesnt have aimlock
-/ This is still on beta
+/ This still on beta!
 / This still doesnt have all features.
 ]]
 
@@ -301,6 +300,63 @@ GameVisuals:AddSlider("FieldOfView", {Text="Field Of View", Default=defaultField
 GameVisuals:AddToggle("FullBright", {Text="Full Bright", Default=false})
 GameVisuals:AddToggle("NoFog", {Text="No Fog", Default=false})
 
+local AimlockTabbox = Tabs.Features:AddLeftTabbox("Aimlock", "target")
+local AimlockTab = AimlockTabbox:AddTab("Aimlock")
+local AimlockConfigTab = AimlockTabbox:AddTab("Configuration")
+
+AimlockTab:AddToggle("EnableAimlock", { Text = "Enable Aimlock", Default = false })
+AimlockTab:AddDropdown("AimlockType", { Values = { "Nearest Character", "Nearest Mouse" }, Default = 1, Text = "Aimlock Type" })
+AimlockTab:AddDivider()
+AimlockTab:AddToggle("WallCheck", { Text = "Wall Check", Default = true })
+AimlockTab:AddToggle("TeamCheck", { Text = "Team Check", Default = true })
+AimlockTab:AddDivider()
+AimlockTab:AddDropdown("AimlockCertainPlayer", { 
+    SpecialType = "Player", 
+    ExcludeLocalPlayer = true, 
+    Multi = false,
+    Searchable = true,
+    Text = "Aimlock Certain Player" 
+})
+AimlockTab:AddDivider()
+AimlockTab:AddToggle("EnableFOV", { Text = "Enable FOV", Default = false })
+AimlockTab:AddToggle("ShowFOV", { Text = "Show FOV", Default = false })
+    :AddColorPicker("FOVColor", { 
+        Default = Color3.fromRGB(255, 255, 255), 
+        Title = "FOV Color", 
+        Transparency = 1
+    })
+AimlockTab:AddDropdown("FOVType", { Values = { "Centered", "Mouse" }, Default = 1, Text = "FOV Type" })
+
+AimlockConfigTab:AddSlider("AimlockMaxDist", { Text = "Aimlock Max Dist", Default = 5000, Min = 1, Max = 10000, Rounding = 0 })
+AimlockConfigTab:AddSlider("MouseMaxDist", { Text = "Mouse Max Dist", Default = 5000, Min = 1, Max = 10000, Rounding = 0 })
+AimlockConfigTab:AddSlider("FOVMaxDist", { Text = "FOV Max Dist", Default = 5000, Min = 1, Max = 10000, Rounding = 0 })
+AimlockConfigTab:AddDivider()
+AimlockConfigTab:AddToggle("SmoothAimlock", { Text = "Smooth Aimlock", Default = false })
+AimlockConfigTab:AddSlider("AimbotSmoothness", { Text = "Aimbot Smoothness", Default = 25, Min = 1, Max = 100, Rounding = 0 })
+AimlockConfigTab:AddDivider()
+AimlockConfigTab:AddSlider("FOVSize", { Text = "FOV Size", Default = 150, Min = 1, Max = 750, Rounding = 0 })
+AimlockConfigTab:AddSlider("FOVStrokeThickness", { Text = "FOV Stroke Thickness", Default = 2.5, Min = 1, Max = 10, Rounding = 1 })
+AimlockConfigTab:AddToggle("RainbowFOV", { Text = "Rainbow FOV", Default = false })
+AimlockConfigTab:AddSlider("RainbowFOVSpeed", { Text = "Rainbow FOV Speed", Default = 2, Min = 1, Max = 10, Rounding = 0 })
+AimlockConfigTab:AddDivider()
+AimlockConfigTab:AddDropdown("WhitelistPlayers", { 
+    SpecialType = "Player", 
+    ExcludeLocalPlayer = true, 
+    Multi = true,
+    Searchable = true,
+    Text = "Whitelist Players" 
+})
+AimlockConfigTab:AddDropdown("PrioritizePlayers", { 
+    SpecialType = "Player", 
+    ExcludeLocalPlayer = true, 
+    Multi = true,
+    Searchable = true,
+    Text = "Prioritize Players" 
+})
+AimlockConfigTab:AddDivider()
+AimlockConfigTab:AddSlider("AimlockOffsetY", { Text = "Aimlock Offset (Y)", Default = 0, Min = -1, Max = 1, Rounding = 2 })
+AimlockConfigTab:AddSlider("AimlockOffsetX", { Text = "Aimlock Offset (X)", Default = 0, Min = -1, Max = 1, Rounding = 2 })
+
 local TeleportGroupBox = Tabs.Features:AddLeftGroupbox("Teleport", "map-pin")
 local FPSGroupBox = Tabs.Features:AddRightGroupbox("FPS", "activity")
 
@@ -426,6 +482,210 @@ spawn(function()
 			Toggles.AutoChat:SetValue(false)
 		end
 	end
+end)
+
+local CoreGui = game:GetService("CoreGui")
+
+local FOVGui = Instance.new("ScreenGui")
+FOVGui.Name = "UNX_FOV_Circle"
+FOVGui.ResetOnSpawn = false
+FOVGui.IgnoreGuiInset = true
+FOVGui.DisplayOrder = 999999999
+FOVGui.Parent = CoreGui
+
+local FOVFrame = Instance.new("Frame")
+FOVFrame.Name = "Circle"
+FOVFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVFrame.BackgroundTransparency = 1
+FOVFrame.BorderSizePixel = 0
+FOVFrame.Size = UDim2.new(0, 200, 0, 200)
+FOVFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+FOVFrame.Parent = FOVGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = FOVFrame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Thickness = 2.5
+UIStroke.Color = Color3.fromRGB(255, 255, 255)
+UIStroke.Transparency = 1
+UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+UIStroke.Parent = FOVFrame
+
+local rainbowClock = 0
+local function UpdateRainbowFOV()
+    if Toggles.RainbowFOV.Value then
+        rainbowClock = rainbowClock + (Options.RainbowFOVSpeed.Value / 100)
+        local r = math.sin(rainbowClock) * 0.5 + 0.5
+        local g = math.sin(rainbowClock + 2) * 0.5 + 0.5
+        local b = math.sin(rainbowClock + 4) * 0.5 + 0.5
+        UIStroke.Color = Color3.new(r, g, b)
+    else
+        UIStroke.Color = Options.FOVColor.Value
+    end
+end
+
+local function UpdateFOV()
+    if Toggles.ShowFOV.Value then
+        local radius = Options.FOVSize.Value
+        FOVFrame.Size = UDim2.new(0, radius * 2, 0, radius * 2)
+        UIStroke.Transparency = Options.FOVColor.Transparency
+        UIStroke.Thickness = Options.FOVStrokeThickness.Value
+
+        if Options.FOVType.Value == "Centered" then
+            FOVFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+        else
+            local mousePos = UserInputService:GetMouseLocation()
+            FOVFrame.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
+        end
+
+        UpdateRainbowFOV()
+        FOVGui.Enabled = true
+    else
+        FOVGui.Enabled = false
+    end
+end
+
+local function IsValidTarget(plr)
+    if not plr or plr == player then return false end
+    if not plr.Character or not plr.Character:FindFirstChild("Head") or not plr.Character:FindFirstChild("Humanoid") then return false end
+    if plr.Character.Humanoid.Health <= 0 then return false end
+    if Toggles.TeamCheck.Value and plr.Team == player.Team then return false end
+    
+    if Options.WhitelistPlayers.Value then
+        for whitelistedPlayer, isWhitelisted in pairs(Options.WhitelistPlayers.Value) do
+            if isWhitelisted and plr.Name == tostring(whitelistedPlayer) then
+                return false
+            end
+        end
+    end
+    
+    return true
+end
+
+local function HasLineOfSight(targetHead)
+    if not Toggles.WallCheck.Value then return true end
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {character}
+    local result = Workspace:Raycast(camera.CFrame.Position, (targetHead.Position - camera.CFrame.Position).Unit * 500, raycastParams)
+    return not result or result.Instance:IsDescendantOf(targetHead.Parent)
+end
+
+local function GetClosestPlayer()
+    if Options.AimlockCertainPlayer.Value and Options.AimlockCertainPlayer.Value ~= "" then
+        local certainPlayerValue = tostring(Options.AimlockCertainPlayer.Value)
+        local certainPlayer = Players:FindFirstChild(certainPlayerValue)
+        if certainPlayer and IsValidTarget(certainPlayer) then
+            local head = certainPlayer.Character:FindFirstChild("Head")
+            if head and HasLineOfSight(head) then
+                local worldDist = (head.Position - camera.CFrame.Position).Magnitude
+                local maxDist = Options.AimlockType.Value == "Nearest Mouse" and Options.MouseMaxDist.Value or Options.AimlockMaxDist.Value
+                if worldDist <= maxDist then
+                    return certainPlayer
+                end
+            end
+        end
+        return nil
+    end
+
+    local closest = nil
+    local shortestDistance = math.huge
+    local mousePos = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y + 36)
+    local centerPos = Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)
+    local checkPos = Options.AimlockType.Value == "Nearest Mouse" and mousePos or centerPos
+
+    local prioritizedPlayers = {}
+    local normalPlayers = {}
+
+    for _, plr in Players:GetPlayers() do
+        if IsValidTarget(plr) then
+            local isPrioritized = false
+            if Options.PrioritizePlayers.Value then
+                for prioritizedPlayer, isPrio in pairs(Options.PrioritizePlayers.Value) do
+                    if isPrio and plr.Name == tostring(prioritizedPlayer) then
+                        isPrioritized = true
+                        break
+                    end
+                end
+            end
+            
+            if isPrioritized then
+                table.insert(prioritizedPlayers, plr)
+            else
+                table.insert(normalPlayers, plr)
+            end
+        end
+    end
+
+    local function CheckPlayer(plr)
+        local head = plr.Character:FindFirstChild("Head")
+        if head then
+            local screenPos, onScreen = camera:WorldToViewportPoint(head.Position)
+            if onScreen then
+                local distance = (Vector2.new(screenPos.X, screenPos.Y) - checkPos).Magnitude
+                local worldDist = (head.Position - camera.CFrame.Position).Magnitude
+                local maxDist = Options.AimlockType.Value == "Nearest Mouse" and Options.MouseMaxDist.Value or Options.AimlockMaxDist.Value
+
+                if worldDist <= maxDist and distance < shortestDistance then
+                    if Toggles.EnableFOV.Value then
+                        local fovCenter = Options.FOVType.Value == "Centered" and centerPos or mousePos
+                        if (Vector2.new(screenPos.X, screenPos.Y) - fovCenter).Magnitude <= Options.FOVMaxDist.Value then
+                            if HasLineOfSight(head) then
+                                shortestDistance = distance
+                                return plr
+                            end
+                        end
+                    else
+                        if HasLineOfSight(head) then
+                            shortestDistance = distance
+                            return plr
+                        end
+                    end
+                end
+            end
+        end
+        return nil
+    end
+
+    for _, plr in ipairs(prioritizedPlayers) do
+        local result = CheckPlayer(plr)
+        if result then
+            closest = result
+        end
+    end
+
+    if not closest then
+        for _, plr in ipairs(normalPlayers) do
+            local result = CheckPlayer(plr)
+            if result then
+                closest = result
+            end
+        end
+    end
+
+    return closest
+end
+
+RunService.RenderStepped:Connect(function()
+    UpdateFOV()
+
+    if Toggles.EnableAimlock.Value then
+        local target = GetClosestPlayer()
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            local head = target.Character.Head
+            local offset = Vector3.new(Options.AimlockOffsetX.Value * 10, Options.AimlockOffsetY.Value * 10, 0)
+            local targetPos = head.Position + offset
+
+            if Toggles.SmoothAimlock.Value then
+                local smoothness = Options.AimbotSmoothness.Value / 100
+                camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, targetPos), smoothness)
+            else
+                camera.CFrame = CFrame.new(camera.CFrame.Position, targetPos)
+            end
+        end
+    end
 end)
 
 RunService.RenderStepped:Connect(function()
