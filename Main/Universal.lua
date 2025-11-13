@@ -7,8 +7,8 @@ UNXHUB BETA, THIS MAY FAIL OR BREAK THE GAME, USE ON YOUR OWN RISK!
 \ This has better logic
 \ This is more stable
 \ Better code & stuff
-/ This still on beta!
-/ This still doesnt have all features.
+\ More features
+/ This removed entire fun tab (dont expect me to add it back :/)
 ]]
 
 loadstring(game:HttpGet("https://github.com/not-gato/UNX/raw/refs/heads/main/Modules/v2/Log.lua",true))()
@@ -358,11 +358,7 @@ AimlockConfigTab:AddSlider("AimlockOffsetY", { Text = "Aimlock Offset (Y)", Defa
 AimlockConfigTab:AddSlider("AimlockOffsetX", { Text = "Aimlock Offset (X)", Default = 0, Min = -1, Max = 1, Rounding = 2 })
 
 local TeleportGroupBox = Tabs.Features:AddLeftGroupbox("Teleport", "map-pin")
-local FPSGroupBox = Tabs.Features:AddRightGroupbox("FPS", "activity")
-
-local fpsValue = 60
-FPSGroupBox:AddSlider("FPSMeter", {Text="FPS Cap", Default=60, Min=1, Max=720, Rounding=0, Callback=function(v) fpsValue = v end})
-FPSGroupBox:AddButton({Text="Apply FPS Cap", Func=function() setfpscap(fpsValue) Library:Notify("FPS set to "..fpsValue,3) end})
+local SpectateGroupBox = Tabs.Features:AddLeftGroupbox("Spectate", "eye")
 
 local teleportPlayer = nil
 local teleportType = "Instant (TP)"
@@ -383,7 +379,7 @@ TeleportGroupBox:AddDropdown("TeleportPlayer", {
 
 TeleportGroupBox:AddButton({Text="Teleport To Player", Func=function()
 	if not teleportPlayer or not teleportPlayer.Character or not teleportPlayer.Character:FindFirstChild("HumanoidRootPart") then
-		Library:Notify("Invalid player!",3) return
+		return
 	end
 	local target = teleportPlayer.Character.HumanoidRootPart
 	local wasNoclip = Toggles.Noclip.Value
@@ -404,17 +400,73 @@ end})
 TeleportGroupBox:AddDropdown("TeleportType", {Text="Teleport Type", Values={"Instant (TP)","Tween (Fast)"}, Default="Instant (TP)", Callback=function(v) teleportType = v end})
 TeleportGroupBox:AddToggle("NoclipOnTween", {Text="Noclip During Tween", Default=false})
 
-local ServerGroupBox = Tabs.Features:AddLeftGroupbox("Server", "server")
+local spectatePlayer = nil
+local spectateType = "Third Person"
+
+local function updateSpectate()
+	if Toggles.SpectatePlayer.Value and spectatePlayer and spectatePlayer.Character then
+		local humanoid = spectatePlayer.Character:FindFirstChildOfClass("Humanoid")
+		local head = spectatePlayer.Character:FindFirstChild("Head")
+		if humanoid then
+			if spectateType == "First Person" and head then
+				camera.CameraSubject = head
+				camera.CameraType = Enum.CameraType.Scriptable
+			else
+				camera.CameraSubject = humanoid
+				camera.CameraType = Enum.CameraType.Follow
+			end
+		end
+	else
+		if character and humanoid then
+			camera.CameraSubject = humanoid
+			camera.CameraType = Enum.CameraType.Custom
+		end
+	end
+end
+
+SpectateGroupBox:AddToggle("SpectatePlayer", {Text="Spectate Player", Default=false, Callback=function(v)
+	updateSpectate()
+end})
+
+SpectateGroupBox:AddDropdown("PlayerToSpectate", {
+	Text = "Player To Spectate",
+	Values = getPlayerList(),
+	Searchable = true,
+	Callback = function(v) 
+		spectatePlayer = Players:FindFirstChild(v)
+		if Toggles.SpectatePlayer.Value then
+			updateSpectate()
+		end
+	end
+})
+
+SpectateGroupBox:AddDropdown("SpectateType", {
+	Text = "Type",
+	Values = {"First Person", "Third Person"},
+	Default = "Third Person",
+	Callback = function(v) 
+		spectateType = v
+		if Toggles.SpectatePlayer.Value then
+			updateSpectate()
+		end
+	end
+})
+
+local FPSGroupBox = Tabs.Features:AddRightGroupbox("FPS", "activity")
+
+local fpsValue = 60
+FPSGroupBox:AddSlider("FPSMeter", {Text="FPS Cap", Default=60, Min=1, Max=720, Rounding=0, Callback=function(v) fpsValue = v end})
+FPSGroupBox:AddButton({Text="Apply FPS Cap", Func=function() setfpscap(fpsValue) end})
+
+local ServerGroupBox = Tabs.Features:AddRightGroupbox("Server", "server")
 
 ServerGroupBox:AddButton({Text = "Copy Server JobID", Func = function()
 	setclipboard(game.JobId)
-	Library:Notify("Server JobID copied!", 3)
 end})
 
 ServerGroupBox:AddButton({Text = "Copy Server Join Link", Func = function()
 	local link = string.format("roblox://placeId=%d&gameInstanceId=%s", game.PlaceId, game.JobId)
 	setclipboard(link)
-	Library:Notify("Join link copied!", 5)
 end})
 
 ServerGroupBox:AddDivider()
@@ -428,16 +480,15 @@ ServerGroupBox:AddInput("TargetJobId", {
 
 ServerGroupBox:AddButton({Text = "Join Server", Func = function()
 	if targetJobId == "" or not targetJobId:match("^%w+%-") then
-		Library:Notify("Invalid JobID!", 3) return
+		return
 	end
-	Library:Notify("Joining: "..targetJobId, 3)
 	TeleportService:TeleportToPlaceInstance(game.PlaceId, targetJobId, player)
 end})
 
 ServerGroupBox:AddDivider()
 
 ServerGroupBox:AddButton({Text = "Rejoin Server", Func = function()
-	if game.JobId == "" then Library:Notify("Cannot rejoin reserved server!", 3) return end
+	if game.JobId == "" then return end
 	TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
 end})
 
@@ -737,6 +788,21 @@ MenuGroup:AddToggle("ShowCustomCursor", {Text="Custom Cursor", Default=true, Cal
 MenuGroup:AddDropdown("NotificationSide", {Values={"Left","Right"}, Default="Right", Text="Notification Side", Callback=function(v) Library:SetNotifySide(v) end})
 MenuGroup:AddDropdown("DPIDropdown", {Values={"50%","75%","100%","125%","150%","175%","200%"}, Default="100%", Text="DPI Scale", Callback=function(v) Library:SetDPIScale(tonumber(v:gsub("%%",""))/100) end})
 MenuGroup:AddDivider()
+MenuGroup:AddLabel("<font color='rgb(255,0,0)'><u>DISCLAIMER</u></font>: We Use This To See How Many Users We Get, <u>We Do Not Share This Information With Any Third Partys</u>.", true)
+MenuGroup:AddCheckbox("OptOutLog", {
+	Text = "Opt-Out Log",
+	Default = isfile("optout.unx"),
+	Callback = function(Value)
+		if Value then
+			writefile("optout.unx", "")
+		else
+			if isfile("optout.unx") then
+				delfile("optout.unx")
+			end
+		end
+	end,
+})
+MenuGroup:AddDivider()
 MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", {Default="U", NoUI=true, Text="Menu keybind"})
 MenuGroup:AddButton("Unload", function() Library:Unload() end)
 Library.ToggleKeybind = Options.MenuKeybind
@@ -745,9 +811,8 @@ ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({"MenuKeybind"})
-ThemeManager:SetFolder("MyScriptHub")
-SaveManager:SetFolder("MyScriptHub/specific-game")
-SaveManager:SetSubFolder("specific-place")
+ThemeManager:SetFolder("unxhub")
+SaveManager:SetFolder("unxhub")
 SaveManager:BuildConfigSection(Tabs["UI Settings"])
 ThemeManager:ApplyToTab(Tabs["UI Settings"])
 SaveManager:LoadAutoloadConfig()
@@ -767,6 +832,7 @@ end)
 local function refreshPlayers()
 	task.wait(1)
 	if Options.TeleportPlayer then Options.TeleportPlayer:SetValues(getPlayerList()) end
+	if Options.PlayerToSpectate then Options.PlayerToSpectate:SetValues(getPlayerList()) end
 end
 
 Players.PlayerAdded:Connect(refreshPlayers)
