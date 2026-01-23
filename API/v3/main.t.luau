@@ -157,6 +157,8 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
     MainOtherGB:AddDivider()
     MainOtherGB:AddButton("Teleport (Map Voting #1)", function() MovementManager.SmartTeleport(TeleportLocations["Map Voting #1"]) end)
     MainOtherGB:AddButton("Teleport (Map Voting #2)", function() MovementManager.SmartTeleport(TeleportLocations["Map Voting #2"]) end)
+    MainOtherGB:AddButton("Teleport (Map Voting #3)", function() MovementManager.SmartTeleport(TeleportLocations["Map Voting #3"]) end)
+    MainOtherGB:AddButton("Teleport (Map Voting #4)", function() MovementManager.SmartTeleport(TeleportLocations["Map Voting #4"]) end)
     
     MainOtherGB:AddButton("Teleport (Beast)", function()
         for _, player in ipairs(Players:GetPlayers()) do
@@ -193,6 +195,7 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
         end
     end)
 
+    MainOtherGB:AddLabel("Other")
     MainOtherGB:AddDivider()
     MainOtherGB:AddDropdown("TeleportType", {Text = "Teleport Type", Values = {"Instant (TP)", "Slow (Tween)"}, Default = 1})
     MainOtherGB:AddSlider("TweenSpeed", {Text = "Tween Speed (Studs/s)", Default = 100, Min = 1, Max = 250, Rounding = 0})
@@ -215,7 +218,7 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
         local char = LocalPlayer.Character
         if not char then return end
         local root = char:FindFirstChild("HumanoidRootPart")
-        if root then root.Velocity = Vector3.zero; root.AssemblyLinearVelocity = Vector3.zero end
+        if root then root.Velocity = Vector3.new(0,0,0); root.AssemblyLinearVelocity = Vector3.new(0,0,0) end
     end
 
     ModuleMaid:GiveTask(game:GetService("UserInputService").JumpRequest:Connect(function()
@@ -265,6 +268,8 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
 
     local function ToggleBunnyHop()
         BHopMaid:DoCleaning()
+        BHopMaid = MaidClass.new()
+        ModuleMaid:GiveTask(BHopMaid)
         if Toggles.BunnyHop and Toggles.BunnyHop.Value then
             BHopMaid:GiveTask(RunService.Heartbeat:Connect(function()
                 local char = LocalPlayer.Character
@@ -287,6 +292,7 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
         Options.MaxZoom:OnChanged(ApplyZoom)
         Toggles.NoVelocity:OnChanged(ApplyNoVelocity)
         Toggles.BunnyHop:OnChanged(ToggleBunnyHop)
+        Options.BunnyHopDelay:OnChanged(function() if Toggles.BunnyHop and Toggles.BunnyHop.Value then ToggleBunnyHop() end end)
     end)
 
     ModuleMaid:GiveTask(LocalPlayer.CharacterAdded:Connect(function(c)
@@ -294,7 +300,7 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
         ApplyCharacterMods()
         ApplyZoom()
         setupSpeedGlitch(c)
-        ToggleBunnyHop()
+        if Toggles.BunnyHop and Toggles.BunnyHop.Value then ToggleBunnyHop() end
     end))
 
     ModuleMaid:GiveTask(RunService.Heartbeat:Connect(function()
@@ -313,12 +319,18 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
                 end
             end
             if #newSurvivors == 0 then newSurvivors = {"No Survivors"} end
-            if Options.SurvivorDropdown then Options.SurvivorDropdown:SetValues(newSurvivors) end
+            if Options.SurvivorDropdown then
+                Options.SurvivorDropdown:SetValues(newSurvivors)
+                if not table.find(newSurvivors, Options.SurvivorDropdown.Value) then Options.SurvivorDropdown:SetValue(newSurvivors[1]) end
+            end
 
             local newComputers = {}
             for i, _ in ipairs(CacheManager.Computers) do table.insert(newComputers, "Computer #" .. i) end
             if #newComputers == 0 then newComputers = {"No Computers"} end
-            if Options.ComputerDropdown then Options.ComputerDropdown:SetValues(newComputers) end
+            if Options.ComputerDropdown then
+                Options.ComputerDropdown:SetValues(newComputers)
+                if not table.find(newComputers, Options.ComputerDropdown.Value) then Options.ComputerDropdown:SetValue(newComputers[1]) end
+            end
 
             lastDropdownUpdate = tick()
         end
