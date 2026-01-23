@@ -1,4 +1,3 @@
--- visuals.t.luau
 return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
