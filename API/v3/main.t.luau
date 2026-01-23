@@ -215,7 +215,6 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
     MainOtherGB:AddToggle("NoclipOnTween", {Text = "Noclip On Tween", Default = true})
 
     local function ApplyCharacterMods()
-        if not (Toggles.LockWalkSpeed and Toggles.LockWalkSpeed.Value) then return end
         local char = LocalPlayer.Character
         if not char then return end
         local hum = char:FindFirstChildOfClass("Humanoid")
@@ -300,17 +299,14 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
 
     task.spawn(function()
         while not Options.WalkSpeed do task.wait() end
-        Options.WalkSpeed:OnChanged(function() if Toggles.LockWalkSpeed.Value then ApplyCharacterMods() end end)
-        Options.JumpPower:OnChanged(function() if Toggles.LockWalkSpeed.Value then ApplyCharacterMods() end end)
         Options.MaxZoom:OnChanged(ApplyZoom)
-        Toggles.NoVelocity:OnChanged(ApplyNoVelocity)
         Toggles.BunnyHop:OnChanged(ToggleBunnyHop)
         Options.BunnyHopDelay:OnChanged(function() if Toggles.BunnyHop and Toggles.BunnyHop.Value then ToggleBunnyHop() end end)
     end)
 
     ModuleMaid:GiveTask(LocalPlayer.CharacterAdded:Connect(function(c)
         task.wait(0.1)
-        ApplyCharacterMods()
+        if Toggles.LockWalkSpeed.Value then ApplyCharacterMods() end
         ApplyZoom()
         setupSpeedGlitch(c)
         if Toggles.BunnyHop and Toggles.BunnyHop.Value then ToggleBunnyHop() end
@@ -318,6 +314,7 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
 
     ModuleMaid:GiveTask(RunService.Heartbeat:Connect(function()
         if Toggles.NoVelocity and Toggles.NoVelocity.Value then ApplyNoVelocity() end
+        if Toggles.LockWalkSpeed and Toggles.LockWalkSpeed.Value then ApplyCharacterMods() end
     end))
 
     if LocalPlayer.Character then ApplyCharacterMods(); ApplyZoom(); setupSpeedGlitch(LocalPlayer.Character) end
