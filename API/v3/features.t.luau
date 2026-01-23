@@ -21,7 +21,7 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
             else BindModule:DelBindB("No PC Err") end
         end
     })
-    FeaturesGB:AddLabel("Credits Of "No PC Error" Feature Goes To: Yarhm | Created By Imperial! :D")
+    FeaturesGB:AddLabel("Credits Of 'No PC Error' Feature Goes To: Yarhm | Created By Imperial! :D")
     FeaturesGB:AddButton({Text = "Execute Yarhm", Func = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Joystickplays/psychic-octo-invention/main/source/yarhm/1.19/yarhm.lua", false))() end})
 
     FeaturesGB:AddToggle("DoPCRemotely", {Text = "Bigger PC Range", Default = false})
