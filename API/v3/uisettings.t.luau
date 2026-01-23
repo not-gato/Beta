@@ -13,6 +13,13 @@ return function(Library, Tabs, RootMaid, SaveManager, ThemeManager)
         Callback = function(v) if BindModule then BindModule:MakeAllShape(v=="Circle" and 0 or v=="Square" and 1 or 2) end end
     })
     MenuGroup:AddSlider("BindSize", {Text = "Bind Button Size", Default = 1, Min = 0.1, Max = 10, Rounding = 1, Callback = function(v) if BindModule then BindModule:SetSizeB(v) end end})
+    MenuGroup:AddButton("Apply Bind Button Configs", function()
+        local shape = Library.Options.BindShape.Value
+        if BindModule then
+            BindModule:MakeAllShape(shape=="Circle" and 0 or shape=="Square" and 1 or 2)
+            BindModule:SetSizeB(Library.Options.BindSize.Value)
+        end
+    end)
 
     Library.ToggleKeybind = Library.Options.MenuKeybind
     ThemeManager:SetLibrary(Library)
@@ -50,6 +57,16 @@ return function(Library, Tabs, RootMaid, SaveManager, ThemeManager)
     local uiStroke = Instance.new("UIStroke", button); uiStroke.Color = Color3.fromRGB(255, 255, 255); uiStroke.Thickness = 2
     local uiGradient = Instance.new("UIGradient", uiStroke); uiGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(180, 140, 100)), ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 90, 65))}
 
+    local function triggerSmallHaptic()
+        if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+            local success, supported = pcall(function() return game:GetService("HapticService"):IsMotorSupported(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small) end)
+            if success and supported then
+                game:GetService("HapticService"):SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0.3)
+                task.delay(0.06, function() game:GetService("HapticService"):SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0) end)
+            end
+        end
+    end
+
     local currentInput, dragStartPos, isDragging, clickStartTime = nil, nil, false, 0
     local dragThreshold = 8
 
@@ -64,7 +81,7 @@ return function(Library, Tabs, RootMaid, SaveManager, ThemeManager)
         if input == currentInput and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStartPos
             if delta.Magnitude > dragThreshold then isDragging = true end
-            if isDragging then TweenService:Create(button, TweenInfo.new(0.1), {Position = UDim2.new(0, dragStartPos.X + delta.X, 0, dragStartPos.Y + delta.Y)}):Play() end
+            if isDragging then TweenService:Create(button, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {Position = UDim2.new(0, dragStartPos.X + delta.X, 0, dragStartPos.Y + delta.Y)}):Play() end
         end
     end))
 
@@ -72,26 +89,33 @@ return function(Library, Tabs, RootMaid, SaveManager, ThemeManager)
         if input == currentInput then
             if not isDragging and tick() - clickStartTime < 0.3 then
                 Library:Toggle()
+                triggerSmallHaptic()
                 local pos, absPos, absSize = input.Position, button.AbsolutePosition, button.AbsoluteSize
+                local relX = absSize.X > 0 and (pos.X - absPos.X) / absSize.X or 0.5
+                local relY = absSize.Y > 0 and (pos.Y - absPos.Y) / absSize.Y or 0.5
                 local wave = Instance.new("ImageLabel", button)
-                wave.Size = UDim2.new(0,0,0,0); wave.Position = UDim2.new((pos.X-absPos.X)/absSize.X, 0, (pos.Y-absPos.Y)/absSize.Y, 0); wave.AnchorPoint = Vector2.new(0.5,0.5)
-                wave.BackgroundTransparency = 1; wave.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"; wave.ImageTransparency = 0.3; wave.ZIndex = 9e8
+                wave.Size = UDim2.new(0,0,0,0); wave.Position = UDim2.new(relX, 0, relY, 0); wave.AnchorPoint = Vector2.new(0.5,0.5)
+                wave.BackgroundTransparency = 1; wave.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"; wave.ImageColor3 = Color3.fromRGB(255,255,255); wave.ImageTransparency = 0.3; wave.ZIndex = 9e8
                 Instance.new("UICorner", wave).CornerRadius = UDim.new(1,0)
-                TweenService:Create(wave, TweenInfo.new(0.5), {Size = UDim2.new(2.5,0,2.5,0), ImageTransparency = 1}):Play()
-                game.Debris:AddItem(wave, 0.5)
+                TweenService:Create(wave, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {Size = UDim2.new(2.5,0,2.5,0), ImageTransparency = 1}):Play()
+                task.delay(0.5, function() wave:Destroy() end)
             end
             currentInput = nil; isDragging = false
         end
     end))
 
+    RootMaid:GiveTask(button.MouseEnter:Connect(function() TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, button.Size.X.Offset * 1.08, 0, button.Size.Y.Offset * 1.08)}):Play() end))
+    
     local function updateButtonSize()
         local cam = workspace.CurrentCamera
         if not cam then return end
         local vp = cam.ViewportSize
-        local base = math.clamp(math.min(vp.X, vp.Y) * 0.08, 50, 80)
+        local base = math.clamp(math.min(vp.X or 800, vp.Y or 600) * 0.08, 50, 80)
         local scale = (Library.Options.CustomToggleSize and Library.Options.CustomToggleSize.Value or 100) / 100
         button.Size = UDim2.new(0, base * scale, 0, base * scale)
     end
+    
+    RootMaid:GiveTask(button.MouseLeave:Connect(function() TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, button.Size.X.Offset, 0, button.Size.Y.Offset)}):Play(); updateButtonSize() end))
     RootMaid:GiveTask(workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateButtonSize))
 
     local showToggle = isfile("showtoggle.unx")
@@ -101,7 +125,7 @@ return function(Library, Tabs, RootMaid, SaveManager, ThemeManager)
     end})
 
     local toggleSize = 100
-    if isfile("togglesize.unx") then toggleSize = tonumber(readfile("togglesize.unx")) or 100 end
+    if isfile("togglesize.unx") then pcall(function() toggleSize = tonumber(readfile("togglesize.unx")) or 100 end) end
     MenuGroup:AddSlider("CustomToggleSize", {Text = "Custom Toggle Size (%)", Default = toggleSize, Min = 50, Max = 200, Rounding = 0, Callback = function(v)
         writefile("togglesize.unx", tostring(v)); updateButtonSize()
     end})
