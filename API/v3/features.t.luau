@@ -1,135 +1,314 @@
-return function(Library, Tabs, RootMaid, SaveManager, ThemeManager)
-    local UserInputService = game:GetService("UserInputService")
-    local TweenService = game:GetService("TweenService")
+return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local LocalPlayer = Players.LocalPlayer
+    local Options = Library.Options
+    local Toggles = Library.Toggles
     local BindModule = loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Bind.lua"))()
+
+    local ModuleMaid = MaidClass.new()
+    RootMaid:GiveTask(ModuleMaid)
+    RootMaid:GiveTask(function() if BindModule then BindModule:Kill() end end)
+
+    local FeaturesGB = Tabs.Features:AddLeftGroupbox("Features", "zap")
     
-    local MenuGroup = Tabs["UI Settings"]:AddLeftGroupbox("Menu", "wrench")
-    MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", {Default = "RightShift", NoUI = true, Text = "Menu keybind"})
-    MenuGroup:AddButton("Unload", function() Library:Unload() end)
-    MenuGroup:AddDivider()
-    MenuGroup:AddButton("Reset Bind Buttons Position", function() if BindModule then BindModule:ResetPos() end end)
-    MenuGroup:AddDropdown("BindShape", {
-        Text = "Bind Buttons Shape", Values = {"Circle", "Square", "Rounded"}, Default = 1,
-        Callback = function(v) if BindModule then BindModule:MakeAllShape(v=="Circle" and 0 or v=="Square" and 1 or 2) end end
-    })
-    MenuGroup:AddSlider("BindSize", {Text = "Bind Button Size", Default = 1, Min = 0.1, Max = 10, Rounding = 1, Callback = function(v) if BindModule then BindModule:SetSizeB(v) end end})
-    MenuGroup:AddButton("Apply Bind Button Configs", function()
-        local shape = Library.Options.BindShape.Value
-        if BindModule then
-            BindModule:MakeAllShape(shape=="Circle" and 0 or shape=="Square" and 1 or 2)
-            BindModule:SetSizeB(Library.Options.BindSize.Value)
+    FeaturesGB:AddToggle("NoPCError", {Text = "No PC Error", Default = false})
+    FeaturesGB:AddToggle("NoPCErrorBind", {
+        Text = "No PC Error BindButton", Default = false,
+        Callback = function(v)
+            if v then BindModule:AddToggleBB("No PC Err", function() if Toggles.NoPCError then Toggles.NoPCError:SetValue(true) end end, function() if Toggles.NoPCError then Toggles.NoPCError:SetValue(false) end end)
+            else BindModule:DelBindB("No PC Err") end
         end
+    })
+    FeaturesGB:AddLabel("Credits: Imperial - Yarhm")
+    FeaturesGB:AddButton({Text = "Execute Yarhm", Func = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Joystickplays/psychic-octo-invention/main/source/yarhm/1.19/yarhm.lua", false))() end})
+
+    FeaturesGB:AddToggle("DoPCRemotely", {Text = "Bigger PC Range", Default = false})
+    FeaturesGB:AddToggle("DoPCRemotelyBind", {
+        Text = "Bigger PC Range BindButton", Default = false,
+        Callback = function(v)
+            if v then BindModule:AddToggleBB("Big Range", function() if Toggles.DoPCRemotely then Toggles.DoPCRemotely:SetValue(true) end end, function() if Toggles.DoPCRemotely then Toggles.DoPCRemotely:SetValue(false) end end)
+            else BindModule:DelBindB("Big Range") end
+        end
+    })
+
+    local PCRangeMaid = MaidClass.new()
+    ModuleMaid:GiveTask(PCRangeMaid)
+    local timeNear = 0
+    local activePC = nil
+    local originalTransforms = {}
+
+    PCRangeMaid:GiveTask(RunService.Heartbeat:Connect(function()
+        if Toggles.DoPCRemotely and Toggles.DoPCRemotely.Value then
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root then
+                if activePC then
+                    local screen = activePC:FindFirstChild("Screen")
+                    local isDone = false
+                    if screen and screen:IsA("BasePart") then
+                        local c = screen.Color
+                        if math.abs(c.R*255 - 40) < 5 and math.abs(c.G*255 - 127) < 5 and math.abs(c.B*255 - 71) < 5 then isDone = true end
+                    end
+                    if isDone then
+                        for part, data in pairs(originalTransforms) do if part and part.Parent then part.CFrame = data.CFrame; part.Size = data.Size end end
+                        originalTransforms = {}; activePC = nil
+                    else
+                        for i = 1, 3 do
+                            local trig = activePC:FindFirstChild("ComputerTrigger"..i)
+                            if trig and trig:IsA("BasePart") then trig.CFrame = root.CFrame; trig.Size = Vector3.new(9e4, 9e4, 9e4); trig.CanCollide = false end
+                        end
+                    end
+                else
+                    for _, pc in ipairs(CacheManager.Computers) do
+                        local screen = pc:FindFirstChild("Screen")
+                        local isDone = false
+                        if screen and screen:IsA("BasePart") then
+                            local c = screen.Color
+                            if math.abs(c.R*255 - 40) < 5 and math.abs(c.G*255 - 127) < 5 and math.abs(c.B*255 - 71) < 5 then isDone = true end
+                        end
+                        if not isDone then
+                            if (pc:GetPivot().Position - root.Position).Magnitude <= 6 then
+                                timeNear = timeNear + 0.05
+                                if timeNear >= 1 then
+                                    activePC = pc; Library:Notify("Bigger Range Triggered!"); timeNear = 0
+                                    for i = 1, 3 do
+                                        local trig = pc:FindFirstChild("ComputerTrigger"..i)
+                                        if trig and trig:IsA("BasePart") then originalTransforms[trig] = {CFrame = trig.CFrame, Size = trig.Size} end
+                                    end
+                                end
+                                break 
+                            end
+                        end
+                    end
+                end
+            end
+        else
+            if activePC then
+                for part, data in pairs(originalTransforms) do if part and part.Parent then part.CFrame = data.CFrame; part.Size = data.Size end end
+                originalTransforms = {}; activePC = nil; timeNear = 0
+            end
+        end
+    end))
+
+    local OldNameCall
+    OldNameCall = hookmetamethod(game, "__namecall", function(Self, ...)
+        local Args = {...}
+        if getnamecallmethod() == "FireServer" and Args[1] == "SetPlayerMinigameResult" and Toggles.NoPCError and Toggles.NoPCError.Value then Args[2] = true end
+        return OldNameCall(Self, unpack(Args))
     end)
 
-    Library.ToggleKeybind = Library.Options.MenuKeybind
-    ThemeManager:SetLibrary(Library)
-    SaveManager:SetLibrary(Library)
-    SaveManager:IgnoreThemeSettings()
-    SaveManager:SetIgnoreIndexes({"MenuKeybind"})
-    ThemeManager:SetFolder("unxhub")
-    SaveManager:SetFolder("unxhub")
-    SaveManager:BuildConfigSection(Tabs["UI Settings"])
-    ThemeManager:ApplyToTab(Tabs["UI Settings"])
-    SaveManager:LoadAutoloadConfig()
+    local FlingGroupBox = Tabs.Features:AddLeftGroupbox("Fling", "wind")
+    local flingTime = 5
+    local flingForce = 50000
 
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "CustomButtonGui"
-    screenGui.ResetOnSpawn = false
-    screenGui.IgnoreGuiInset = true
-    screenGui.DisplayOrder = 999999999
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    screenGui.Parent = gethui and gethui() or game:GetService("CoreGui")
-    RootMaid:GiveTask(screenGui)
+    local function Fling(TargetPlayer, duration, flingForce)
+        local startTime = tick()
+        local Character = LocalPlayer.Character
+        local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+        local RootPart = Humanoid and Humanoid.RootPart
 
-    local button = Instance.new("ImageButton")
-    button.Name = "CustomButton"
-    button.Image = "rbxassetid://130346803512317"
-    button.BackgroundTransparency = 1
-    button.Position = UDim2.new(0.5, 0, 0, 50)
-    button.AnchorPoint = Vector2.new(0.5, 0)
-    button.Size = UDim2.new(0, 60, 0, 60)
-    button.ClipsDescendants = true
-    button.ZIndex = 999999999
-    button.Visible = false
-    button.Parent = screenGui
-    
-    local uiCorner = Instance.new("UICorner", button); uiCorner.CornerRadius = UDim.new(0, 6)
-    local uiStroke = Instance.new("UIStroke", button); uiStroke.Color = Color3.fromRGB(255, 255, 255); uiStroke.Thickness = 2
-    local uiGradient = Instance.new("UIGradient", uiStroke); uiGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(180, 140, 100)), ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 90, 65))}
+        local TCharacter = TargetPlayer.Character
+        local THumanoid
+        local TRootPart
+        local THead
+        local Accessory
+        local Handle
 
-    local function triggerSmallHaptic()
-        if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
-            local success, supported = pcall(function() return game:GetService("HapticService"):IsMotorSupported(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small) end)
-            if success and supported then
-                game:GetService("HapticService"):SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0.3)
-                task.delay(0.06, function() game:GetService("HapticService"):SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0) end)
+        if TCharacter:FindFirstChildOfClass("Humanoid") then THumanoid = TCharacter:FindFirstChildOfClass("Humanoid") end
+        if THumanoid and THumanoid.RootPart then TRootPart = THumanoid.RootPart end
+        if TCharacter:FindFirstChild("Head") then THead = TCharacter.Head end
+        if TCharacter:FindFirstChildOfClass("Accessory") then Accessory = TCharacter:FindFirstChildOfClass("Accessory") end
+        if Accessory and Accessory:FindFirstChild("Handle") then Handle = Accessory.Handle end
+
+        if Character and Humanoid and RootPart then
+            if RootPart.Velocity.Magnitude < 50 then getgenv().OldPos = RootPart.CFrame end
+            if THead then workspace.CurrentCamera.CameraSubject = THead
+            elseif not THead and Handle then workspace.CurrentCamera.CameraSubject = Handle
+            elseif THumanoid and TRootPart then workspace.CurrentCamera.CameraSubject = THumanoid end
+            if not TCharacter:FindFirstChildWhichIsA("BasePart") then return end
+            
+            local FPos = function(BasePart, Pos, Ang)
+                RootPart.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
+                Character:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
+                RootPart.Velocity = Vector3.new(flingForce, flingForce * 10, flingForce)
+                RootPart.RotVelocity = Vector3.new(flingForce * 20, flingForce * 20, flingForce * 20)
             end
+            
+            local SFBasePart = function(BasePart)
+                local TimeToWait = duration or 2
+                local Time = tick()
+                local Angle = 0
+
+                repeat
+                    if RootPart and THumanoid then
+                        if BasePart.Velocity.Magnitude < 50 then
+                            Angle = Angle + 100
+                            FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle),0 ,0))
+                            task.wait()
+                            FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                            task.wait()
+                            FPos(BasePart, CFrame.new(2.25, 1.5, -2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                            task.wait()
+                            FPos(BasePart, CFrame.new(-2.25, -1.5, 2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                            task.wait()
+                            FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection,CFrame.Angles(math.rad(Angle), 0, 0))
+                            task.wait()
+                            FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection,CFrame.Angles(math.rad(Angle), 0, 0))
+                            task.wait()
+                        else
+                            FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
+                            FPos(BasePart, CFrame.new(0, -1.5, -THumanoid.WalkSpeed), CFrame.Angles(0, 0, 0)); task.wait()
+                            FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
+                            FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
+                            FPos(BasePart, CFrame.new(0, -1.5, -TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0)); task.wait()
+                            FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
+                            FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
+                            FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0)); task.wait()
+                            FPos(BasePart, CFrame.new(0, -1.5 ,0), CFrame.Angles(math.rad(-90), 0, 0)); task.wait()
+                            FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0)); task.wait()
+                        end
+                    else break end
+                until BasePart.Velocity.Magnitude > 500 or BasePart.Parent ~= TargetPlayer.Character or TargetPlayer.Parent ~= Players or not TargetPlayer.Character == TCharacter or THumanoid.Sit or tick() > Time + TimeToWait
+            end
+            
+            local previousDestroyHeight = workspace.FallenPartsDestroyHeight
+            workspace.FallenPartsDestroyHeight = 0/0
+            
+            local BV = Instance.new("BodyVelocity")
+            BV.Name = "EpixVel"
+            BV.Parent = RootPart
+            BV.Velocity = Vector3.new(flingForce, flingForce, flingForce)
+            BV.MaxForce = Vector3.new(1/0, 1/0, 1/0)
+            
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+            
+            if TRootPart and THead then
+                if (TRootPart.CFrame.p - THead.CFrame.p).Magnitude > 5 then SFBasePart(THead) else SFBasePart(TRootPart) end
+            elseif TRootPart and not THead then SFBasePart(TRootPart)
+            elseif not TRootPart and THead then SFBasePart(THead)
+            elseif not TRootPart and not THead and Accessory and Handle then SFBasePart(Handle) end
+            
+            BV:Destroy()
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+            workspace.CurrentCamera.CameraSubject = Humanoid
+            
+            repeat
+                if Character and Humanoid and RootPart and getgenv().OldPos then
+                    RootPart.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
+                    Character:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, .5, 0))
+                    Humanoid:ChangeState("GettingUp")
+                    table.foreach(Character:GetChildren(), function(_, x) if x:IsA("BasePart") then x.Velocity, x.RotVelocity = Vector3.new(), Vector3.new() end end)
+                end
+                task.wait()
+            until RootPart and getgenv().OldPos and (RootPart.Position - getgenv().OldPos.p).Magnitude < 25
+            workspace.FallenPartsDestroyHeight = previousDestroyHeight
         end
     end
 
-    local currentInput, dragStartPos, isDragging, clickStartTime = nil, nil, false, 0
-    local dragThreshold = 8
-
-    RootMaid:GiveTask(button.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            if currentInput then return end
-            currentInput = input; dragStartPos = input.Position; isDragging = false; clickStartTime = tick()
-        end
-    end))
-
-    RootMaid:GiveTask(UserInputService.InputChanged:Connect(function(input)
-        if input == currentInput and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStartPos
-            if delta.Magnitude > dragThreshold then isDragging = true end
-            if isDragging then TweenService:Create(button, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {Position = UDim2.new(0, dragStartPos.X + delta.X, 0, dragStartPos.Y + delta.Y)}):Play() end
-        end
-    end))
-
-    RootMaid:GiveTask(UserInputService.InputEnded:Connect(function(input)
-        if input == currentInput then
-            if not isDragging and tick() - clickStartTime < 0.3 then
-                Library:Toggle()
-                triggerSmallHaptic()
-                local pos, absPos, absSize = input.Position, button.AbsolutePosition, button.AbsoluteSize
-                local relX = absSize.X > 0 and (pos.X - absPos.X) / absSize.X or 0.5
-                local relY = absSize.Y > 0 and (pos.Y - absPos.Y) / absSize.Y or 0.5
-                local wave = Instance.new("ImageLabel", button)
-                wave.Size = UDim2.new(0,0,0,0); wave.Position = UDim2.new(relX, 0, relY, 0); wave.AnchorPoint = Vector2.new(0.5,0.5)
-                wave.BackgroundTransparency = 1; wave.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"; wave.ImageColor3 = Color3.fromRGB(255,255,255); wave.ImageTransparency = 0.3; wave.ZIndex = 9e8
-                Instance.new("UICorner", wave).CornerRadius = UDim.new(1,0)
-                TweenService:Create(wave, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {Size = UDim2.new(2.5,0,2.5,0), ImageTransparency = 1}):Play()
-                task.delay(0.5, function() wave:Destroy() end)
-            end
-            currentInput = nil; isDragging = false
-        end
-    end))
-
-    RootMaid:GiveTask(button.MouseEnter:Connect(function() TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, button.Size.X.Offset * 1.08, 0, button.Size.Y.Offset * 1.08)}):Play() end))
-    
-    local function updateButtonSize()
-        local cam = workspace.CurrentCamera
-        if not cam then return end
-        local vp = cam.ViewportSize
-        local base = math.clamp(math.min(vp.X or 800, vp.Y or 600) * 0.08, 50, 80)
-        local scale = (Library.Options.CustomToggleSize and Library.Options.CustomToggleSize.Value or 100) / 100
-        button.Size = UDim2.new(0, base * scale, 0, base * scale)
+    local function getPlayerList()
+        local list = {}
+        for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(list, p.Name) end end
+        return list
     end
-    
-    RootMaid:GiveTask(button.MouseLeave:Connect(function() TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, button.Size.X.Offset, 0, button.Size.Y.Offset)}):Play(); updateButtonSize() end))
-    RootMaid:GiveTask(workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateButtonSize))
 
-    local showToggle = isfile("showtoggle.unx")
-    MenuGroup:AddToggle("CustomToggle", {Text = "Custom Toggle", Default = showToggle, Callback = function(v) 
-        if v then writefile("showtoggle.unx", "") else if isfile("showtoggle.unx") then delfile("showtoggle.unx") end end
-        button.Visible = v 
+    FlingGroupBox:AddDropdown("FlingPlayer", {Text = "Select Players", Values = getPlayerList(), Multi = true, Searchable = true})
+    FlingGroupBox:AddButton({Text="Fling Selected", Func=function()
+        if not Options.FlingPlayer.Value then return end
+        for selectedPlayer, isSelected in pairs(Options.FlingPlayer.Value) do
+            if isSelected then
+                local targetPlayer = Players:FindFirstChild(tostring(selectedPlayer))
+                if targetPlayer then Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5) end
+            end
+        end
     end})
-
-    local toggleSize = 100
-    if isfile("togglesize.unx") then pcall(function() toggleSize = tonumber(readfile("togglesize.unx")) or 100 end) end
-    MenuGroup:AddSlider("CustomToggleSize", {Text = "Custom Toggle Size (%)", Default = toggleSize, Min = 50, Max = 200, Rounding = 0, Callback = function(v)
-        writefile("togglesize.unx", tostring(v)); updateButtonSize()
+    FlingGroupBox:AddButton({Text="Fling All", Func=function()
+        for _, targetPlayer in ipairs(Players:GetPlayers()) do
+            if targetPlayer ~= LocalPlayer and targetPlayer.Character then Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5) end
+        end
     end})
+    FlingGroupBox:AddButton({Text="Fling Beast", Func=function()
+        for _, targetPlayer in ipairs(Players:GetPlayers()) do
+            if targetPlayer ~= LocalPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Hammer") then
+                Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5); break
+            end
+        end
+    end})
+    FlingGroupBox:AddDivider()
+    FlingGroupBox:AddToggle("FlingBeastBind", {Text = "Fling Beast Bind Button", Default = false, Callback = function(v)
+        if v then BindModule:AddBindB("Fling Beast", function()
+            for _, targetPlayer in ipairs(Players:GetPlayers()) do
+                if targetPlayer ~= LocalPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Hammer") then
+                    Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5); break
+                end
+            end
+        end) else BindModule:DelBindB("Fling Beast") end
+    end})
+    FlingGroupBox:AddDivider()
+    FlingGroupBox:AddSlider("FlingTime", {Text="Fling Time", Default=5, Min=1, Max=25, Rounding=1, Callback=function(v) flingTime = v end})
+    FlingGroupBox:AddSlider("FlingForce", {Text="Fling Force", Default=50000, Min=1, Max=9999999, Rounding=0, Callback=function(v) flingForce = v end})
     
-    if showToggle then button.Visible = true end
-    updateButtonSize()
+    ModuleMaid:GiveTask(Players.PlayerAdded:Connect(function() if Options.FlingPlayer then Options.FlingPlayer:SetValues(getPlayerList()) end end))
+    ModuleMaid:GiveTask(Players.PlayerRemoving:Connect(function() if Options.FlingPlayer then Options.FlingPlayer:SetValues(getPlayerList()) end end))
+
+    local FunMiscGB = Tabs.Features:AddRightGroupbox("Fun & Misc", "confetti_ball")
+    FunMiscGB:AddToggle("RGBAsync", {Text = "RGB ASync", Default = false})
+    FunMiscGB:AddSlider("RGBAsyncSpeed", {Text = "RGB Async Speed", Default = 5, Min = 1, Max = 10, Rounding = 0})
+    FunMiscGB:AddDivider()
+    FunMiscGB:AddToggle("RGBHammer", {Text = "RGB Hammer", Default = false})
+    FunMiscGB:AddToggle("RGBLight", {Text = "RGB Light", Default = false})
+    FunMiscGB:AddSlider("RGBHammerSpeed", {Text = "RGB Hammer Speed", Default = 5, Min = 1, Max = 10, Rounding = 0})
+    FunMiscGB:AddSlider("RGBLightSpeed", {Text = "RGB Light Speed", Default = 5, Min = 1, Max = 10, Rounding = 0})
+    FunMiscGB:AddDropdown("RGBMethod", {Text = "RGB Method", Values = {"HSV", "RGB"}, Default = 1})
+    FunMiscGB:AddDivider()
+    FunMiscGB:AddButton("Reset", function()
+        if Toggles.RGBAsync then Toggles.RGBAsync:SetValue(false) end
+        if Toggles.RGBHammer then Toggles.RGBHammer:SetValue(false) end
+        if Toggles.RGBLight then Toggles.RGBLight:SetValue(false) end
+        if Options.RGBAsyncSpeed then Options.RGBAsyncSpeed:SetValue(5) end
+        if Options.RGBHammerSpeed then Options.RGBHammerSpeed:SetValue(5) end
+        if Options.RGBLightSpeed then Options.RGBLightSpeed:SetValue(5) end
+        if Options.RGBMethod then Options.RGBMethod:SetValue("HSV") end
+    end)
+    FunMiscGB:AddButton("Rejoin", function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
+
+    local RGB = {HammerHighlight = nil, LastHammerUpdate = 0, LastLightUpdate = 0}
+    local function GetRGBColor(method, speed)
+        if (method or "HSV") == "HSV" then return Color3.fromHSV((tick() * (speed or 5) / 10) % 1, 1, 1)
+        else local t = tick() * (speed or 5); return Color3.fromRGB(127+127*math.sin(t), 127+127*math.sin(t+2), 127+127*math.sin(t+4)) end
+    end
+
+    ModuleMaid:GiveTask(RunService.Heartbeat:Connect(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        if Toggles.RGBHammer and Toggles.RGBHammer.Value then
+            local hammer = char:FindFirstChild("Hammer")
+            if hammer then
+                if not RGB.HammerHighlight then RGB.HammerHighlight = Instance.new("Highlight"); RGB.HammerHighlight.FillTransparency = 0.5; RGB.HammerHighlight.OutlineTransparency = 0; RGB.HammerHighlight.Parent = hammer end
+                if tick() - RGB.LastHammerUpdate >= 0.05 then
+                    local color = GetRGBColor(Options.RGBMethod.Value, (Toggles.RGBAsync.Value and Options.RGBAsyncSpeed.Value) or Options.RGBHammerSpeed.Value)
+                    RGB.HammerHighlight.FillColor = color; RGB.HammerHighlight.OutlineColor = color; RGB.LastHammerUpdate = tick()
+                end
+            end
+        elseif RGB.HammerHighlight then RGB.HammerHighlight:Destroy(); RGB.HammerHighlight = nil end
+        
+        if Toggles.RGBLight and Toggles.RGBLight.Value then
+            local gs = workspace:FindFirstChild(LocalPlayer.Name) and workspace[LocalPlayer.Name]:FindFirstChild("Gemstone")
+            local h = gs and gs:FindFirstChild("Handle")
+            if h then
+                local l = h:FindFirstChild("PointLight") or Instance.new("PointLight", h); l.Brightness = 3; l.Range = 15
+                if tick() - RGB.LastLightUpdate >= 0.05 then
+                    l.Color = GetRGBColor(Options.RGBMethod.Value, (Toggles.RGBAsync.Value and Options.RGBAsyncSpeed.Value) or Options.RGBLightSpeed.Value)
+                    RGB.LastLightUpdate = tick()
+                end
+            end
+        else
+            local gs = workspace:FindFirstChild(LocalPlayer.Name) and workspace[LocalPlayer.Name]:FindFirstChild("Gemstone")
+            if gs then
+                local h = gs:FindFirstChild("Handle")
+                if h then local l = h:FindFirstChild("PointLight"); if l then l:Destroy() end end
+            end
+        end
+    end))
 end
