@@ -1,4 +1,5 @@
-return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
+-- visuals.t.luau
+return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local Lighting = game:GetService("Lighting")
@@ -314,13 +315,13 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
     
     VisualsMaid:GiveTask(RunService.RenderStepped:Connect(UpdateESP))
     
-    local lastAutoReload = 0
-    VisualsMaid:GiveTask(RunService.Heartbeat:Connect(function()
-        if Toggles.AutoReloadESP and Toggles.AutoReloadESP.Value and tick() - lastAutoReload > 1 then
-            CacheManager:Update()
-            lastAutoReload = tick()
-        end
-    end))
+    if Scheduler then
+        VisualsMaid:GiveTask(Scheduler.Interval(1, function()
+            if Toggles.AutoReloadESP and Toggles.AutoReloadESP.Value then
+                CacheManager:Update()
+            end
+        end))
+    end
 
     local LightingMaid = MaidClass.new()
     VisualsMaid:GiveTask(LightingMaid)
