@@ -1,4 +1,5 @@
-return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
+-- features.t.luau
+return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -279,36 +280,33 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
         else local t = tick() * (speed or 5); return Color3.fromRGB(127+127*math.sin(t), 127+127*math.sin(t+2), 127+127*math.sin(t+4)) end
     end
 
-    ModuleMaid:GiveTask(RunService.Heartbeat:Connect(function()
-        local char = LocalPlayer.Character
-        if not char then return end
-        if Toggles.RGBHammer and Toggles.RGBHammer.Value then
-            local hammer = char:FindFirstChild("Hammer")
-            if hammer then
-                if not RGB.HammerHighlight then RGB.HammerHighlight = Instance.new("Highlight"); RGB.HammerHighlight.FillTransparency = 0.5; RGB.HammerHighlight.OutlineTransparency = 0; RGB.HammerHighlight.Parent = hammer end
-                if tick() - RGB.LastHammerUpdate >= 0.05 then
+    if Scheduler then
+        ModuleMaid:GiveTask(Scheduler.Interval(0.05, function()
+            local char = LocalPlayer.Character
+            if not char then return end
+            if Toggles.RGBHammer and Toggles.RGBHammer.Value then
+                local hammer = char:FindFirstChild("Hammer")
+                if hammer then
+                    if not RGB.HammerHighlight then RGB.HammerHighlight = Instance.new("Highlight"); RGB.HammerHighlight.FillTransparency = 0.5; RGB.HammerHighlight.OutlineTransparency = 0; RGB.HammerHighlight.Parent = hammer end
                     local color = GetRGBColor(Options.RGBMethod.Value, (Toggles.RGBAsync.Value and Options.RGBAsyncSpeed.Value) or Options.RGBHammerSpeed.Value)
-                    RGB.HammerHighlight.FillColor = color; RGB.HammerHighlight.OutlineColor = color; RGB.LastHammerUpdate = tick()
+                    RGB.HammerHighlight.FillColor = color; RGB.HammerHighlight.OutlineColor = color
                 end
-            end
-        elseif RGB.HammerHighlight then RGB.HammerHighlight:Destroy(); RGB.HammerHighlight = nil end
-        
-        if Toggles.RGBLight and Toggles.RGBLight.Value then
-            local gs = workspace:FindFirstChild(LocalPlayer.Name) and workspace[LocalPlayer.Name]:FindFirstChild("Gemstone")
-            local h = gs and gs:FindFirstChild("Handle")
-            if h then
-                local l = h:FindFirstChild("PointLight") or Instance.new("PointLight", h); l.Brightness = 3; l.Range = 15
-                if tick() - RGB.LastLightUpdate >= 0.05 then
+            elseif RGB.HammerHighlight then RGB.HammerHighlight:Destroy(); RGB.HammerHighlight = nil end
+            
+            if Toggles.RGBLight and Toggles.RGBLight.Value then
+                local gs = workspace:FindFirstChild(LocalPlayer.Name) and workspace[LocalPlayer.Name]:FindFirstChild("Gemstone")
+                local h = gs and gs:FindFirstChild("Handle")
+                if h then
+                    local l = h:FindFirstChild("PointLight") or Instance.new("PointLight", h); l.Brightness = 3; l.Range = 15
                     l.Color = GetRGBColor(Options.RGBMethod.Value, (Toggles.RGBAsync.Value and Options.RGBAsyncSpeed.Value) or Options.RGBLightSpeed.Value)
-                    RGB.LastLightUpdate = tick()
+                end
+            else
+                local gs = workspace:FindFirstChild(LocalPlayer.Name) and workspace[LocalPlayer.Name]:FindFirstChild("Gemstone")
+                if gs then
+                    local h = gs:FindFirstChild("Handle")
+                    if h then local l = h:FindFirstChild("PointLight"); if l then l:Destroy() end end
                 end
             end
-        else
-            local gs = workspace:FindFirstChild(LocalPlayer.Name) and workspace[LocalPlayer.Name]:FindFirstChild("Gemstone")
-            if gs then
-                local h = gs:FindFirstChild("Handle")
-                if h then local l = h:FindFirstChild("PointLight"); if l then l:Destroy() end end
-            end
-        end
-    end))
+        end))
+    end
 end
