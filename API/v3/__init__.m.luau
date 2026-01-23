@@ -117,13 +117,14 @@ function CacheManager:Update()
     self.Exits = exits
 end
 
+CacheManager:Update()
+
 local Scheduler = unxgmfu(BaseUrl .. "scheduler.m.luau", Library, Tabs, RootMaid, CacheManager, MaidClass)
 
 if Scheduler then
-    CacheManager:Update()
-    Scheduler.Interval(5, function()
+    RootMaid:GiveTask(Scheduler.Interval(5, function()
         CacheManager:Update()
-    end)
+    end))
 end
 
 unxgmfu(BaseUrl .. "main.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
