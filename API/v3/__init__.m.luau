@@ -7,6 +7,8 @@ local Library = loadstring(game:HttpGet(Repo .. "Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(Repo .. "addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet(Repo .. "addons/SaveManager.lua"))()
 
+Library.ForceCheckbox = true
+
 local function SafeCallback(func, ...)
     local success, result = pcall(func, ...)
     if not success then
@@ -15,36 +17,47 @@ local function SafeCallback(func, ...)
     return true, result
 end
 
-local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+local request = http_request or request or (http and http.request)
 
 local function unxgmfu(url, ...)
+    local fileName = url:match("^.+/(.+)$") or url
+    
+    Library:Notify("Fetching " .. fileName, 1)
+
     local success, response = pcall(request, {Url = url, Method = "GET"})
     
     if not success or not response or not response.Body then
-        warn("[UNXHub] Failed to fetch URL: " .. url .. " | Error: " .. tostring(response))
+        warn("[UNXHub]: Failed to fetch URL: " .. url .. " | Error: " .. tostring(response))
+        Library:Notify("Failed to fetch " .. fileName, 2)
         return
     end
 
     local chunk, loadErr = loadstring(response.Body)
     if not chunk then
-        warn("[UNXHub] Syntax Error in " .. url .. ": " .. tostring(loadErr))
+        warn("[UNXHub]: Syntax Error in " .. url .. ": " .. tostring(loadErr))
+        Library:Notify("Syntax Error in " .. fileName, 2)
         return
     end
 
     local chunkSuccess, moduleFunc = SafeCallback(chunk)
     if not chunkSuccess then
-        warn("[UNXHub] Error initializing chunk " .. url .. ": " .. tostring(moduleFunc))
+        warn("[UNXHub]: Error initializing chunk " .. url .. ": " .. tostring(moduleFunc))
+        Library:Notify("Init Error in " .. fileName, 2)
         return
     end
 
     if type(moduleFunc) ~= "function" then
-        warn("[UNXHub] Module at " .. url .. " did not return a function.")
+        warn("[UNXHub]: Module at " .. url .. " did not return a function, wtf?!")
+        Library:Notify(fileName .. " invalid return, wtf?!", 2)
         return
     end
 
     local runSuccess, runErr = SafeCallback(moduleFunc, ...)
     if not runSuccess then
-        warn("[UNXHub] Runtime Error inside " .. url .. ": " .. tostring(runErr))
+        warn("[UNXHub]: Runtime Error inside " .. url .. ": " .. tostring(runErr))
+        Library:Notify("Runtime Error in " .. fileName, 2)
+    else
+        Library:Notify("Loaded " .. fileName, 1)
     end
 end
 
@@ -56,12 +69,11 @@ local maidSuccess, maidResult = pcall(function()
 end)
 
 if not maidSuccess then
-    warn("[UNXHub] Critical: Failed to load Maid class: " .. tostring(maidResult))
+    warn("[UNXHub]: Failed to load Maid class: " .. tostring(maidResult) .."!!!!!!)
     return
 end
-MaidClass = maidResult
 
-Library.ForceCheckbox = true
+MaidClass = maidResult
 
 local Window = Library:CreateWindow({
     Title = "UNXHub | FTF",
