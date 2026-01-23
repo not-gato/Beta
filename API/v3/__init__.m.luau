@@ -29,50 +29,42 @@ local function unxgmfu(url, ...)
     if not success or not response or not response.Body then
         warn("[UNXHub] Failed to fetch URL: " .. url .. " | Error: " .. tostring(response))
         Library:Notify("Failed to fetch " .. fileName, 2)
-        return
+        return nil
     end
 
     local chunk, loadErr = loadstring(response.Body)
     if not chunk then
         warn("[UNXHub] Syntax Error in " .. url .. ": " .. tostring(loadErr))
         Library:Notify("Syntax Error in " .. fileName, 2)
-        return
+        return nil
     end
 
     local chunkSuccess, moduleFunc = SafeCallback(chunk)
     if not chunkSuccess then
         warn("[UNXHub] Error initializing chunk " .. url .. ": " .. tostring(moduleFunc))
         Library:Notify("Init Error in " .. fileName, 2)
-        return
+        return nil
     end
 
     if type(moduleFunc) ~= "function" then
-        warn("[UNXHub] Module at " .. url .. " did not return a function, wtf?!!")
-        Library:Notify(fileName .. " invalid return, wtf?!!", 2)
-        return
+        warn("[UNXHub] Module at " .. url .. " did not return a function")
+        Library:Notify(fileName .. " invalid return", 2)
+        return nil
     end
 
-    local runSuccess, runErr = SafeCallback(moduleFunc, ...)
+    local runSuccess, runResult = SafeCallback(moduleFunc, ...)
     if not runSuccess then
-        warn("[UNXHub] Runtime Error inside " .. url .. ": " .. tostring(runErr))
+        warn("[UNXHub] Runtime Error inside " .. url .. ": " .. tostring(runResult))
         Library:Notify("Runtime Error in " .. fileName, 2)
+        return nil
     else
         Library:Notify("Loaded Sucessfully: " .. fileName, 2)
+        return runResult
     end
 end
 
-local MaidClass
-local maidSuccess, maidResult = pcall(function() 
-    local chunk = loadstring(game:HttpGet(BaseUrl .. "maid.m.luau"))
-    local factory = chunk()
-    return factory()
-end)
-
-if not maidSuccess then
-    warn("[UNXHub] Critical: Failed to load Maid class: " .. tostring(maidResult))
-    return
-end
-MaidClass = maidResult
+local MaidClass = unxgmfu(BaseUrl .. "maid.m.luau")
+if not MaidClass then return end
 
 local Window = Library:CreateWindow({
     Title = "UNXHub | FTF",
@@ -125,16 +117,18 @@ function CacheManager:Update()
     self.Exits = exits
 end
 
-RootMaid:GiveTask(task.spawn(function()
-    CacheManager:Update()
-    while task.wait(5) do
-        CacheManager:Update()
-    end
-end))
+local Scheduler = unxgmfu(BaseUrl .. "scheduler.m.luau", Library, Tabs, RootMaid, CacheManager, MaidClass)
 
-unxgmfu(BaseUrl .. "main.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass)
-unxgmfu(BaseUrl .. "visuals.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass)
-unxgmfu(BaseUrl .. "features.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass)
+if Scheduler then
+    CacheManager:Update()
+    Scheduler.Interval(5, function()
+        CacheManager:Update()
+    end)
+end
+
+unxgmfu(BaseUrl .. "main.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
+unxgmfu(BaseUrl .. "visuals.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
+unxgmfu(BaseUrl .. "features.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
 unxgmfu(BaseUrl .. "uisettings.t.luau", Library, Tabs, RootMaid, SaveManager, ThemeManager)
 
 Library:OnUnload(function()
