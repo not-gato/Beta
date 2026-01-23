@@ -1,12 +1,12 @@
 return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
     local RunService = game:GetService("RunService")
-
+    
     local Scheduler = {}
     local SchedulerMaid = MaidClass.new()
     RootMaid:GiveTask(SchedulerMaid)
 
     local ActiveIntervals = {}
-
+    
     SchedulerMaid:GiveTask(RunService.Heartbeat:Connect(function()
         local now = os.clock()
         for i = #ActiveIntervals, 1, -1 do
@@ -32,7 +32,7 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
         function taskObj:Pause() self.Paused = true end
         function taskObj:Resume() self.Paused = false; self.LastRun = os.clock() end
         function taskObj:RunNow() task.spawn(self.Callback); self.LastRun = os.clock() end
-
+        
         function taskObj:Disconnect()
             if self.Destroyed then return end
             self.Destroyed = true
@@ -40,9 +40,10 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
                 if t == self then table.remove(ActiveIntervals, i); break end
             end
         end
+        
+        function taskObj:Destroy() self:Disconnect() end
 
         SchedulerMaid:GiveTask(function() taskObj:Disconnect() end)
-
         return taskObj
     end
 
@@ -51,27 +52,17 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
         SchedulerMaid:GiveTask(function() if thread then task.cancel(thread) end end)
         return thread
     end
-
-    function Scheduler.Throttle(seconds, func)
-        local lastCall = 0
-        return function(...)
-            local now = os.clock()
-            if now - lastCall >= seconds then
-                lastCall = now
-                return func(...)
-            end
-        end
+    
+    function Scheduler.Render(callback)
+        local conn = RunService.RenderStepped:Connect(callback)
+        SchedulerMaid:GiveTask(conn)
+        return conn
     end
-
-    function Scheduler.Debounce(seconds, func)
-        local thread
-        return function(...)
-            local args = {...}
-            if thread then task.cancel(thread) end
-            thread = task.delay(seconds, function()
-                func(unpack(args))
-            end)
-        end
+    
+    function Scheduler.Heartbeat(callback)
+        local conn = RunService.Heartbeat:Connect(callback)
+        SchedulerMaid:GiveTask(conn)
+        return conn
     end
 
     getgenv().Scheduler = Scheduler
