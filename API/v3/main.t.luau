@@ -2,6 +2,7 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local TweenService = game:GetService("TweenService")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local LocalPlayer = Players.LocalPlayer
     local Camera = workspace.CurrentCamera
     local Options = Library.Options
@@ -119,6 +120,19 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
     MainCharacterGB:AddSlider("MaxZoom", {Text = "Max Zoom", Default = 128, Min = 0, Max = 800, Rounding = 0})
     MainCharacterGB:AddToggle("NoVelocity", {Text = "No Velocity", Default = false})
     MainCharacterGB:AddDivider()
+
+    local AutoInteractMaid = MaidClass.new()
+    ModuleMaid:GiveTask(AutoInteractMaid)
+    MainCharacterGB:AddToggle("AutoInteract", {Text = "Auto Interact", Default = false})
+    MainCharacterGB:AddDropdown("AutoInteractConditions", {
+        Text = "Auto Interact Conditions",
+        Values = {"Near PC", "Near Exit Door", "Near Freeze Pod"},
+        Default = {"Near PC", "Near Exit Door", "Near Freeze Pod"},
+        Multi = true, 
+    })
+    MainCharacterGB:AddLabel('<font color="#FFFF00"><b>CAUTION:</b></font> This feature is made for PC/Laptop devices, using this on a mobile or a tablet device may break your game', true)
+    MainCharacterGB:AddDivider()
+
     MainCharacterGB:AddToggle("NoClip", {Text = "No-Clip", Default = false})
     Toggles.NoClip:AddKeyPicker("NoclipKeybind", {Default="N", Mode="Toggle", Text="Noclip", SyncToggleState=true})
 
@@ -333,6 +347,68 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
             end
 
             lastDropdownUpdate = tick()
+        end
+    end))
+
+    local function isConditionEnabled(name)
+        local val = Options.AutoInteractConditions.Value
+        if type(val) == "table" then
+            return val[name] == true or (type(val[1]) == "string" and table.find(val, name))
+        end
+        return false
+    end
+
+    local interactedObjects = {}
+    AutoInteractMaid:GiveTask(RunService.Heartbeat:Connect(function()
+        if Toggles.AutoInteract and Toggles.AutoInteract.Value then
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+
+            if root then
+                local function InteractRemote()
+                     ReplicatedStorage.RemoteEvent:FireServer("Input", "Action", true)
+                end
+
+                local function tryInteract(obj, range, condName)
+                    if not isConditionEnabled(condName) then return end
+                    if not obj or not obj.Parent then return end
+
+                    local screen = obj:FindFirstChild("Screen")
+                    local pos = (screen and screen.Position) or (obj:IsA("Model") and obj:GetPivot().Position) or obj.Position
+                    local dist = (root.Position - pos).Magnitude
+
+                    if dist <= range then
+                        if condName == "Near PC" then
+                            if screen then
+                                local c = screen.Color
+                                if math.abs(c.R*255 - 40) < 5 and math.abs(c.G*255 - 127) < 5 and math.abs(c.B*255 - 71) < 5 then
+                                    return 
+                                end
+                            end
+                            InteractRemote()
+                            return
+                        end
+
+                        if condName == "Near Freeze Pod" then
+                            InteractRemote()
+                            return
+                        end
+
+                        if condName == "Near Exit Door" then
+                            if not interactedObjects[obj] then
+                                InteractRemote()
+                                interactedObjects[obj] = true
+                            end
+                        end
+                    else
+                        interactedObjects[obj] = nil
+                    end
+                end
+
+                for _, pc in ipairs(CacheManager.Computers) do tryInteract(pc, 5, "Near PC") end
+                for _, pod in ipairs(CacheManager.Pods) do tryInteract(pod, 10, "Near Freeze Pod") end
+                for _, exit in ipairs(CacheManager.Exits) do tryInteract(exit, 10, "Near Exit Door") end
+            end
         end
     end))
 end
