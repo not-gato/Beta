@@ -130,7 +130,6 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
         Default = {"Near PC", "Near Exit Door", "Near Freeze Pod"},
         Multi = true, 
     })
-    MainCharacterGB:AddLabel('<font color="#FFFF00"><b>CAUTION:</b></font> This feature is made for PC/Laptop devices, using this on a mobile or a tablet device may break your game', true)
     MainCharacterGB:AddDivider()
 
     MainCharacterGB:AddToggle("NoClip", {Text = "No-Clip", Default = false})
