@@ -237,7 +237,7 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
     end})
     FlingGroupBox:AddDivider()
     FlingGroupBox:AddToggle("FlingBeastBind", {Text = "Fling Beast Bind Button", Default = false, Callback = function(v)
-        if v then BindModule:AddBindB("Fling Beast", function()
+        if v then BindModule:AddButton("Fling Beast", function()
             for _, targetPlayer in ipairs(Players:GetPlayers()) do
                 if targetPlayer ~= LocalPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Hammer") then
                     Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5); break
