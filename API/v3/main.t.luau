@@ -355,56 +355,72 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
     end
 
     local interactedObjects = {}
-    AutoInteractMaid:GiveTask(RunService.Heartbeat:Connect(function()
-        if Toggles.AutoInteract and Toggles.AutoInteract.Value then
-            local char = LocalPlayer.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
+    local InteractRemote = ReplicatedStorage:WaitForChild("RemoteEvent", 5)
 
-            if root then
-                local function InteractRemote()
-                     ReplicatedStorage.RemoteEvent:FireServer("Input", "Action", true)
-                end
+    local function RunAutoInteract()
+        if not Toggles.AutoInteract.Value then return end
+        
+        local char = LocalPlayer.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        
+        if not InteractRemote then 
+            InteractRemote = ReplicatedStorage:FindFirstChild("RemoteEvent")
+            return 
+        end
 
-                local function tryInteract(obj, range, condName)
-                    if not isConditionEnabled(condName) then return end
-                    if not obj or not obj.Parent then return end
+        local function doInteract()
+            InteractRemote:FireServer("Input", "Action", true)
+        end
 
+        if isConditionEnabled("Near PC") then
+            for _, obj in ipairs(CacheManager.Computers) do
+                if obj and obj.Parent then
                     local screen = obj:FindFirstChild("Screen")
-                    local pos = (screen and screen.Position) or (obj:IsA("Model") and obj:GetPivot().Position) or obj.Position
-                    local dist = (root.Position - pos).Magnitude
+                    local pos = (screen and screen.Position) or obj:GetPivot().Position
+                    if (root.Position - pos).Magnitude <= 5 then
+                         if screen then
+                             local c = screen.Color
+                             if math.abs(c.R*255 - 40) < 5 and math.abs(c.G*255 - 127) < 5 and math.abs(c.B*255 - 71) < 5 then
+                                 -- Completed
+                             else
+                                 doInteract()
+                             end
+                         else
+                             doInteract()
+                         end
+                    end
+                end
+            end
+        end
+        
+        if isConditionEnabled("Near Freeze Pod") then
+             for _, obj in ipairs(CacheManager.Pods) do
+                 if obj and obj.Parent then
+                     local pos = obj:GetPivot().Position
+                     if (root.Position - pos).Magnitude <= 10 then
+                         doInteract()
+                     end
+                 end
+             end
+        end
 
-                    if dist <= range then
-                        if condName == "Near PC" then
-                            if screen then
-                                local c = screen.Color
-                                if math.abs(c.R*255 - 40) < 5 and math.abs(c.G*255 - 127) < 5 and math.abs(c.B*255 - 71) < 5 then
-                                    return 
-                                end
-                            end
-                            InteractRemote()
-                            return
-                        end
-
-                        if condName == "Near Freeze Pod" then
-                            InteractRemote()
-                            return
-                        end
-
-                        if condName == "Near Exit Door" then
-                            if not interactedObjects[obj] then
-                                InteractRemote()
-                                interactedObjects[obj] = true
-                            end
+        if isConditionEnabled("Near Exit Door") then
+            for _, obj in ipairs(CacheManager.Exits) do
+                if obj and obj.Parent then
+                    if (root.Position - obj.Position).Magnitude <= 10 then
+                        if not interactedObjects[obj] then
+                            doInteract()
+                            interactedObjects[obj] = true
                         end
                     else
                         interactedObjects[obj] = nil
                     end
                 end
-
-                for _, pc in ipairs(CacheManager.Computers) do tryInteract(pc, 5, "Near PC") end
-                for _, pod in ipairs(CacheManager.Pods) do tryInteract(pod, 10, "Near Freeze Pod") end
-                for _, exit in ipairs(CacheManager.Exits) do tryInteract(exit, 10, "Near Exit Door") end
             end
         end
-    end))
+    end
+
+    AutoInteractMaid:GiveTask(RunService.Heartbeat:Connect(RunAutoInteract))
 end
