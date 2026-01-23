@@ -213,7 +213,6 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
             end
         end
 
-        -- Note: FreezePod logic follows same pattern, condensing for brevity in modular logic
         if Toggles.FreezePodESP and Toggles.FreezePodESP.Value then
             for i, obj in ipairs(CacheManager.Pods) do
                 if obj and obj.Parent then
