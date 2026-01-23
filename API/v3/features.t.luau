@@ -1,348 +1,344 @@
 return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Lighting = game:GetService("Lighting")
     local LocalPlayer = Players.LocalPlayer
     local Options = Library.Options
     local Toggles = Library.Toggles
-    local BindModule = loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Bind.lua"))()
-
-    local ModuleMaid = MaidClass.new()
-    RootMaid:GiveTask(ModuleMaid)
-    RootMaid:GiveTask(function() if BindModule then BindModule:Kill() end end)
-
-    local FeaturesGB = Tabs.Features:AddLeftGroupbox("Features", "zap")
     
-    FeaturesGB:AddToggle("NoPCError", {Text = "No PC Error", Default = false})
-    FeaturesGB:AddToggle("NoPCErrorBind", {
-        Text = "No PC Error BindButton", Default = false,
-        Callback = function(v)
-            if v then BindModule:AddToggleBB("No PC Err", function() if Toggles.NoPCError then Toggles.NoPCError:SetValue(true) end end, function() if Toggles.NoPCError then Toggles.NoPCError:SetValue(false) end end)
-            else BindModule:DelBindB("No PC Err") end
+    local VisualsMaid = MaidClass.new()
+    RootMaid:GiveTask(VisualsMaid)
+
+    local VisualsTabbox = Tabs.Visuals:AddLeftTabbox()
+    local ESPTab = VisualsTabbox:AddTab("ESPs", "scan")
+
+    ESPTab:AddToggle("ComputerESP", {Text = "Computer ESP", Default = false})
+        :AddColorPicker("ComputerESPColor", {Default = Color3.fromRGB(0,255,0), Title = "Normal"})
+        :AddColorPicker("ComputerESPCompletedColor", {Default = Color3.fromRGB(40,127,71), Title = "Completed"})
+
+    ESPTab:AddToggle("FreezePodESP", {Text = "Freeze Pod ESP", Default = false}):AddColorPicker("FreezePodESPColor", {Default = Color3.fromRGB(0,255,255)})
+    ESPTab:AddToggle("BeastESP", {Text = "Beast ESP", Default = false}):AddColorPicker("BeastESPColor", {Default = Color3.fromRGB(255,0,0)})
+    ESPTab:AddToggle("SurvivorESP", {Text = "Survivor ESP", Default = false}):AddColorPicker("SurvivorESPColor", {Default = Color3.fromRGB(255,255,255)})
+
+    local ConfigTab = VisualsTabbox:AddTab("Configurations", "gear")
+    ConfigTab:AddToggle("ShowDistance", {Text = "Show Distance", Default = true})
+    ConfigTab:AddLabel("Tracers"); ConfigTab:AddDivider()
+    ConfigTab:AddToggle("SurvivorTracers", {Text = "Survivor Tracers", Default = false})
+    ConfigTab:AddToggle("BeastTracers", {Text = "Beast Tracers", Default = false})
+    ConfigTab:AddToggle("ComputerTracers", {Text = "Computer Tracers", Default = false})
+    ConfigTab:AddToggle("FreezePodTracers", {Text = "Freeze Pod Tracers", Default = false})
+    ConfigTab:AddLabel("Outlines"); ConfigTab:AddDivider()
+    ConfigTab:AddToggle("OutlineSurvivors", {Text = "Outline Survivors", Default = false})
+    ConfigTab:AddToggle("OutlineBeast", {Text = "Outline Beast", Default = false})
+    ConfigTab:AddToggle("OutlineComputers", {Text = "Outline Computers", Default = false})
+    ConfigTab:AddToggle("OutlineFreezePod", {Text = "Outline Freeze Pod", Default = false})
+    ConfigTab:AddLabel("Rainbow Effects"); ConfigTab:AddDivider()
+    ConfigTab:AddToggle("RainbowSurvivorESP", {Text = "Rainbow Survivors ESPs", Default = false})
+    ConfigTab:AddToggle("RainbowBeastESP", {Text = "Rainbow Beast ESPs", Default = false})
+    ConfigTab:AddToggle("RainbowComputerESP", {Text = "Rainbow Computers ESPs", Default = false})
+    ConfigTab:AddToggle("RainbowFreezePodESP", {Text = "Rainbow Freeze Pod ESPs", Default = false})
+    ConfigTab:AddSlider("RainbowSpeed", {Text = "Rainbow Speed", Default = 1, Min = 1, Max = 10, Rounding = 1})
+    ConfigTab:AddLabel("Other"); ConfigTab:AddDivider()
+    ConfigTab:AddSlider("ESPTextSize", {Text = "ESP Text Size", Default = 16, Min = 1, Max = 50, Rounding = 0})
+    ConfigTab:AddSlider("TracerThickness", {Text = "Tracer Thickness", Default = 2, Min = 1, Max = 10, Rounding = 0})
+    ConfigTab:AddSlider("OutlineFillTransparency", {Text = "Outline Fill (%)", Default = 100, Min = 0, Max = 100, Rounding = 0})
+    ConfigTab:AddSlider("OutlineTransparency", {Text = "Outline Transp (%)", Default = 0, Min = 0, Max = 100, Rounding = 0})
+    ConfigTab:AddToggle("AutoReloadESP", {Text = "Auto Re-Load ESP", Default = false})
+
+    local VisualsGameCamGB = Tabs.Visuals:AddRightGroupbox("Game & Camera", "camera")
+    VisualsGameCamGB:AddSlider("FOVSlider", {Text = "FOV", Default = 80, Min = 80, Max = 120, Rounding = 0})
+    VisualsGameCamGB:AddToggle("Fullbright", {Text = "Full Bright", Default = false}):AddColorPicker("FullbrightColor", {Default = Color3.fromRGB(255,255,255)})
+    VisualsGameCamGB:AddToggle("NoFog", {Text = "No Fog", Default = false})
+
+    local ESP = {Drawings = {}, Tracers = {}, Highlights = {}}
+    
+    local function CreateLine()
+        local l = Drawing.new("Line")
+        l.Visible = false; l.Thickness = 2; l.Transparency = 1
+        return l
+    end
+
+    local function CreateHighlight()
+        local h = Instance.new("Highlight")
+        h.FillTransparency = 1; h.OutlineTransparency = 0; h.Enabled = false
+        return h
+    end
+
+    local function CreateBillboard(target)
+        if not target then return nil end
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "unxcontainer"
+        billboard.Adornee = target
+        billboard.Size = UDim2.new(0, 200, 0, 50)
+        billboard.StudsOffset = Vector3.new(0, 2, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Enabled = false
+        
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Parent = billboard
+        textLabel.BackgroundTransparency = 1
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        textLabel.TextSize = 16
+        textLabel.Font = Enum.Font.BuilderSans 
+        textLabel.Text = "..."
+        
+        local uiStroke = Instance.new("UIStroke")
+        uiStroke.Parent = textLabel
+        uiStroke.Thickness = 1.2
+        uiStroke.Color = Color3.fromRGB(200, 200, 200)
+        uiStroke.Transparency = 0
+        
+        if target:IsA("BasePart") or target:IsA("Model") then billboard.Parent = target else billboard.Parent = game.CoreGui end
+        return billboard
+    end
+
+    local function GetRainbow(speed) return Color3.fromHSV((tick() * ((speed or 1) / 10)) % 1, 1, 1) end
+    local function GetDarkerColor(c) return Color3.new(math.clamp(c.R * 0.784, 0, 1), math.clamp(c.G * 0.784, 0, 1), math.clamp(c.B * 0.784, 0, 1)) end
+
+    local function RemoveESP(key)
+        local d = ESP.Drawings[key]
+        if d and d:IsA("Instance") then d:Destroy() end
+        local t = ESP.Tracers[key]
+        if t and t.Remove then t:Remove() end
+        local h = ESP.Highlights[key]
+        if h and h.Destroy then h:Destroy() end
+        ESP.Drawings[key], ESP.Tracers[key], ESP.Highlights[key] = nil, nil, nil
+    end
+
+    local function ClearAllESP()
+        for key in pairs(ESP.Drawings) do RemoveESP(key) end
+        for key in pairs(ESP.Tracers) do RemoveESP(key) end
+        for key in pairs(ESP.Highlights) do RemoveESP(key) end
+    end
+    VisualsMaid:GiveTask(ClearAllESP)
+
+    ConfigTab:AddButton("Re-load ESPs", function() ClearAllESP() CacheManager:Update() end)
+
+    local function MonitorPlayer(player)
+        if player == LocalPlayer then return end
+        VisualsMaid:GiveTask(player.CharacterAdded:Connect(function(char)
+            VisualsMaid:GiveTask(char.AncestryChanged:Connect(function(_, parent)
+                if not parent then RemoveESP("Beast_" .. player.UserId); RemoveESP("Surv_" .. player.UserId) end
+            end))
+        end))
+        VisualsMaid:GiveTask(player.CharacterRemoving:Connect(function() RemoveESP("Beast_" .. player.UserId); RemoveESP("Surv_" .. player.UserId) end))
+    end
+
+    for _, p in ipairs(Players:GetPlayers()) do MonitorPlayer(p) end
+    VisualsMaid:GiveTask(Players.PlayerAdded:Connect(MonitorPlayer))
+    VisualsMaid:GiveTask(Players.PlayerRemoving:Connect(function(player) RemoveESP("Beast_" .. player.UserId); RemoveESP("Surv_" .. player.UserId) end))
+
+    local function UpdateESP()
+        local activeKeys = {}
+        local cam = workspace.CurrentCamera
+        if not cam then return end
+        local camPos = cam.CFrame.Position
+        local showDist = Toggles.ShowDistance and Toggles.ShowDistance.Value
+
+        for _, bb in pairs(ESP.Drawings) do 
+            if bb and bb:IsA("BillboardGui") then
+                local txt = bb:FindFirstChild("TextLabel")
+                if txt then txt.TextSize = Options.ESPTextSize and Options.ESPTextSize.Value or 16 end
+            end 
         end
-    })
-    FeaturesGB:AddLabel("Credits: Imperial - Yarhm")
-    FeaturesGB:AddButton({Text = "Execute Yarhm", Func = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Joystickplays/psychic-octo-invention/main/source/yarhm/1.19/yarhm.lua", false))() end})
-
-    FeaturesGB:AddToggle("DoPCRemotely", {Text = "Bigger PC Range", Default = false})
-    FeaturesGB:AddToggle("DoPCRemotelyBind", {
-        Text = "Bigger PC Range BindButton", Default = false,
-        Callback = function(v)
-            if v then BindModule:AddToggleBB("Big Range", function() if Toggles.DoPCRemotely then Toggles.DoPCRemotely:SetValue(true) end end, function() if Toggles.DoPCRemotely then Toggles.DoPCRemotely:SetValue(false) end end)
-            else BindModule:DelBindB("Big Range") end
+        for _, l in pairs(ESP.Tracers) do if l then l.Thickness = Options.TracerThickness and Options.TracerThickness.Value or 2 end end
+        for _, h in pairs(ESP.Highlights) do 
+            if h then 
+                h.FillTransparency = (Options.OutlineFillTransparency and Options.OutlineFillTransparency.Value or 100) / 100
+                h.OutlineTransparency = (Options.OutlineTransparency and Options.OutlineTransparency.Value or 0) / 100
+            end 
         end
-    })
 
-    local PCRangeMaid = MaidClass.new()
-    ModuleMaid:GiveTask(PCRangeMaid)
-    local timeNear = 0
-    local activePC = nil
-    local originalTransforms = {}
-
-    PCRangeMaid:GiveTask(RunService.Heartbeat:Connect(function()
-        if Toggles.DoPCRemotely and Toggles.DoPCRemotely.Value then
-            local char = LocalPlayer.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            if root then
-                if activePC then
-                    local screen = activePC:FindFirstChild("Screen")
-                    local isDone = false
+        if Toggles.ComputerESP and Toggles.ComputerESP.Value then
+            for i, obj in ipairs(CacheManager.Computers) do
+                if obj and obj.Parent then
+                    local screen = obj:FindFirstChild("Screen")
+                    local isCompleted, isError = false, false
                     if screen and screen:IsA("BasePart") then
                         local c = screen.Color
-                        if math.abs(c.R*255 - 40) < 5 and math.abs(c.G*255 - 127) < 5 and math.abs(c.B*255 - 71) < 5 then isDone = true end
+                        if math.abs(c.R*255 - 40) < 5 and math.abs(c.G*255 - 127) < 5 and math.abs(c.B*255 - 71) < 5 then isCompleted = true
+                        elseif math.abs(c.R*255 - 196) < 5 and math.abs(c.G*255 - 40) < 5 and math.abs(c.B*255 - 28) < 5 then isError = true end
                     end
-                    if isDone then
-                        for part, data in pairs(originalTransforms) do if part and part.Parent then part.CFrame = data.CFrame; part.Size = data.Size end end
-                        originalTransforms = {}; activePC = nil
-                    else
-                        for i = 1, 3 do
-                            local trig = activePC:FindFirstChild("ComputerTrigger"..i)
-                            if trig and trig:IsA("BasePart") then trig.CFrame = root.CFrame; trig.Size = Vector3.new(9e4, 9e4, 9e4); trig.CanCollide = false end
+
+                    local key = "Comp_" .. obj:GetDebugId()
+                    activeKeys[key] = true
+                    local targetPart = screen or obj.PrimaryPart
+                    local billboard = ESP.Drawings[key] 
+                    if not billboard or billboard.Parent ~= targetPart then
+                        if billboard then billboard:Destroy() end
+                        if targetPart then billboard = CreateBillboard(targetPart); ESP.Drawings[key] = billboard end
+                    end
+                    local tracer = ESP.Tracers[key] or CreateLine(); ESP.Tracers[key] = tracer
+                    local hl = ESP.Highlights[key] or CreateHighlight(); ESP.Highlights[key] = hl
+                    
+                    local color = (Toggles.RainbowComputerESP and Toggles.RainbowComputerESP.Value and GetRainbow(Options.RainbowSpeed.Value)) or
+                                  (isError and Color3.fromRGB(196, 40, 28)) or
+                                  (isCompleted and (Options.ComputerESPCompletedColor and Options.ComputerESPCompletedColor.Value or Color3.fromRGB(40, 127, 71))) or
+                                  (Options.ComputerESPColor and Options.ComputerESPColor.Value or Color3.fromRGB(0, 255, 0))
+
+                    local pos = obj:GetPivot().Position
+                    if billboard then
+                        local txt = billboard:FindFirstChild("TextLabel")
+                        if txt then
+                            txt.Text = "Computer #"..i..(showDist and " ["..math.floor((camPos-pos).Magnitude).."]" or "")..(isError and " (ERROR)" or (isCompleted and " (COMPLETED)" or ""))
+                            txt.TextColor3 = color
+                            local stroke = txt:FindFirstChild("UIStroke")
+                            if stroke then stroke.Color = GetDarkerColor(color) end
                         end
+                        billboard.Enabled = true
+                    end
+
+                    if Toggles.ComputerTracers.Value then
+                        local screenPos, onScreen = cam:WorldToViewportPoint(pos + Vector3.new(0, 5, 0))
+                        if onScreen then
+                            tracer.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y)
+                            tracer.To = Vector2.new(screenPos.X, screenPos.Y)
+                            tracer.Color = color
+                            tracer.Visible = true
+                        else tracer.Visible = false end
+                    else tracer.Visible = false end
+                    
+                    if Toggles.OutlineComputers.Value then
+                        hl.Parent = obj; hl.FillColor = color; hl.OutlineColor = color; hl.Enabled = true
+                    else hl.Enabled = false end
+                end
+            end
+        else
+            for i, obj in ipairs(CacheManager.Computers) do
+                 local key = "Comp_" .. obj:GetDebugId()
+                 if ESP.Drawings[key] then ESP.Drawings[key].Enabled = false end
+                 if ESP.Tracers[key] then ESP.Tracers[key].Visible = false end
+                 if ESP.Highlights[key] then ESP.Highlights[key].Enabled = false end
+            end
+        end
+
+        if Toggles.FreezePodESP and Toggles.FreezePodESP.Value then
+            for i, obj in ipairs(CacheManager.Pods) do
+                if obj and obj.Parent then
+                    local key = "Pod_" .. obj:GetDebugId(); activeKeys[key] = true
+                    local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                    local billboard = ESP.Drawings[key]
+                    if not billboard or billboard.Parent ~= targetPart then
+                        if billboard then billboard:Destroy() end
+                        if targetPart then billboard = CreateBillboard(targetPart); ESP.Drawings[key] = billboard end
+                    end
+                    local tracer = ESP.Tracers[key] or CreateLine(); ESP.Tracers[key] = tracer
+                    local hl = ESP.Highlights[key] or CreateHighlight(); ESP.Highlights[key] = hl
+                    local color = (Toggles.RainbowFreezePodESP and Toggles.RainbowFreezePodESP.Value and GetRainbow(Options.RainbowSpeed.Value)) or (Options.FreezePodESPColor and Options.FreezePodESPColor.Value or Color3.fromRGB(0,255,255))
+                    local pos = obj:GetPivot().Position
+                    if billboard then
+                        local txt = billboard:FindFirstChild("TextLabel")
+                        if txt then
+                            txt.Text = "Freeze Pod #"..i..(showDist and " ["..math.floor((camPos-pos).Magnitude).."]" or "")
+                            txt.TextColor3 = color
+                            if txt:FindFirstChild("UIStroke") then txt:FindFirstChild("UIStroke").Color = GetDarkerColor(color) end
+                        end
+                        billboard.Enabled = true
+                    end
+                    if Toggles.FreezePodTracers.Value then
+                        local screenPos, onScreen = cam:WorldToViewportPoint(pos + Vector3.new(0, 5, 0))
+                        if onScreen then tracer.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y); tracer.To = Vector2.new(screenPos.X, screenPos.Y); tracer.Color = color; tracer.Visible = true else tracer.Visible = false end
+                    else tracer.Visible = false end
+                    if Toggles.OutlineFreezePod.Value then hl.Parent = obj; hl.FillColor = color; hl.OutlineColor = color; hl.Enabled = true else hl.Enabled = false end
+                end
+            end
+        else
+            for i, obj in ipairs(CacheManager.Pods) do
+                 local key = "Pod_" .. obj:GetDebugId()
+                 if ESP.Drawings[key] then ESP.Drawings[key].Enabled = false end
+                 if ESP.Tracers[key] then ESP.Tracers[key].Visible = false end
+                 if ESP.Highlights[key] then ESP.Highlights[key].Enabled = false end
+            end
+        end
+
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local isBeast = player.Character:FindFirstChild("Hammer") ~= nil
+                local key = (isBeast and "Beast_" or "Surv_") .. player.UserId
+                local shouldShow = (isBeast and Toggles.BeastESP and Toggles.BeastESP.Value) or (not isBeast and Toggles.SurvivorESP and Toggles.SurvivorESP.Value)
+                
+                if shouldShow then
+                    local root = player.Character:FindFirstChild("HumanoidRootPart")
+                    local head = player.Character:FindFirstChild("Head")
+                    if root and head then
+                        activeKeys[key] = true
+                        local billboard = ESP.Drawings[key]
+                        if not billboard or billboard.Parent ~= head then
+                            if billboard then billboard:Destroy() end
+                            billboard = CreateBillboard(head); ESP.Drawings[key] = billboard
+                        end
+                        local tracer = ESP.Tracers[key] or CreateLine(); ESP.Tracers[key] = tracer
+                        local hl = ESP.Highlights[key] or CreateHighlight(); ESP.Highlights[key] = hl
+                        
+                        local useRainbow = (isBeast and Toggles.RainbowBeastESP and Toggles.RainbowBeastESP.Value) or (not isBeast and Toggles.RainbowSurvivorESP and Toggles.RainbowSurvivorESP.Value)
+                        local color = useRainbow and GetRainbow(Options.RainbowSpeed.Value) or (isBeast and (Options.BeastESPColor and Options.BeastESPColor.Value or Color3.fromRGB(255,0,0)) or (Options.SurvivorESPColor and Options.SurvivorESPColor.Value or Color3.fromRGB(255,255,255)))
+                        
+                        if billboard then
+                            local txt = billboard:FindFirstChild("TextLabel")
+                            if txt then
+                                txt.Text = player.DisplayName..(isBeast and " [BEAST]" or " [SURV]")..(showDist and " ["..math.floor((camPos-root.Position).Magnitude).."]" or "")
+                                txt.TextColor3 = color
+                                if txt:FindFirstChild("UIStroke") then txt:FindFirstChild("UIStroke").Color = GetDarkerColor(color) end
+                            end
+                            billboard.Enabled = true
+                        end
+
+                        if (isBeast and Toggles.BeastTracers.Value) or (not isBeast and Toggles.SurvivorTracers.Value) then
+                            local screenPos, onScreen = cam:WorldToViewportPoint(root.Position + Vector3.new(0,3.5,0))
+                            if onScreen then tracer.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y); tracer.To = Vector2.new(screenPos.X, screenPos.Y); tracer.Color = color; tracer.Visible = true else tracer.Visible = false end
+                        else tracer.Visible = false end
+
+                        if (isBeast and Toggles.OutlineBeast.Value) or (not isBeast and Toggles.OutlineSurvivors.Value) then hl.Parent = player.Character; hl.FillColor = color; hl.OutlineColor = color; hl.Enabled = true else hl.Enabled = false end
                     end
                 else
-                    for _, pc in ipairs(CacheManager.Computers) do
-                        local screen = pc:FindFirstChild("Screen")
-                        local isDone = false
-                        if screen and screen:IsA("BasePart") then
-                            local c = screen.Color
-                            if math.abs(c.R*255 - 40) < 5 and math.abs(c.G*255 - 127) < 5 and math.abs(c.B*255 - 71) < 5 then isDone = true end
-                        end
-                        if not isDone then
-                            if (pc:GetPivot().Position - root.Position).Magnitude <= 6 then
-                                timeNear = timeNear + 0.05
-                                if timeNear >= 1 then
-                                    activePC = pc; Library:Notify("Bigger Range Triggered!"); timeNear = 0
-                                    for i = 1, 3 do
-                                        local trig = pc:FindFirstChild("ComputerTrigger"..i)
-                                        if trig and trig:IsA("BasePart") then originalTransforms[trig] = {CFrame = trig.CFrame, Size = trig.Size} end
-                                    end
-                                end
-                                break 
-                            end
-                        end
-                    end
+                    if ESP.Drawings[key] then ESP.Drawings[key].Enabled = false end
+                    if ESP.Tracers[key] then ESP.Tracers[key].Visible = false end
+                    if ESP.Highlights[key] then ESP.Highlights[key].Enabled = false end
                 end
+            else
+                local k1, k2 = "Beast_"..player.UserId, "Surv_"..player.UserId
+                if ESP.Drawings[k1] then ESP.Drawings[k1].Enabled = false end
+                if ESP.Tracers[k1] then ESP.Tracers[k1].Visible = false end
+                if ESP.Highlights[k1] then ESP.Highlights[k1].Enabled = false end
+                if ESP.Drawings[k2] then ESP.Drawings[k2].Enabled = false end
+                if ESP.Tracers[k2] then ESP.Tracers[k2].Visible = false end
+                if ESP.Highlights[k2] then ESP.Highlights[k2].Enabled = false end
             end
-        else
-            if activePC then
-                for part, data in pairs(originalTransforms) do if part and part.Parent then part.CFrame = data.CFrame; part.Size = data.Size end end
-                originalTransforms = {}; activePC = nil; timeNear = 0
-            end
+        end
+
+        for key in pairs(ESP.Drawings) do
+            if not activeKeys[key] and not string.find(key, "Beast_") and not string.find(key, "Surv_") then RemoveESP(key) end
+        end
+    end
+    
+    VisualsMaid:GiveTask(RunService.RenderStepped:Connect(UpdateESP))
+    
+    local lastAutoReload = 0
+    VisualsMaid:GiveTask(RunService.Heartbeat:Connect(function()
+        if Toggles.AutoReloadESP and Toggles.AutoReloadESP.Value and tick() - lastAutoReload > 1 then
+            CacheManager:Update()
+            lastAutoReload = tick()
         end
     end))
 
-    local OldNameCall
-    OldNameCall = hookmetamethod(game, "__namecall", function(Self, ...)
-        local Args = {...}
-        if getnamecallmethod() == "FireServer" and Args[1] == "SetPlayerMinigameResult" and Toggles.NoPCError and Toggles.NoPCError.Value then Args[2] = true end
-        return OldNameCall(Self, unpack(Args))
-    end)
+    local LightingMaid = MaidClass.new()
+    VisualsMaid:GiveTask(LightingMaid)
 
-    local FlingGroupBox = Tabs.Features:AddLeftGroupbox("Fling", "wind")
-    local flingTime = 5
-    local flingForce = 50000
-
-    local function Fling(TargetPlayer, duration, flingForce)
-        local startTime = tick()
-        local Character = LocalPlayer.Character
-        local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
-        local RootPart = Humanoid and Humanoid.RootPart
-
-        local TCharacter = TargetPlayer.Character
-        local THumanoid
-        local TRootPart
-        local THead
-        local Accessory
-        local Handle
-
-        if TCharacter:FindFirstChildOfClass("Humanoid") then THumanoid = TCharacter:FindFirstChildOfClass("Humanoid") end
-        if THumanoid and THumanoid.RootPart then TRootPart = THumanoid.RootPart end
-        if TCharacter:FindFirstChild("Head") then THead = TCharacter.Head end
-        if TCharacter:FindFirstChildOfClass("Accessory") then Accessory = TCharacter:FindFirstChildOfClass("Accessory") end
-        if Accessory and Accessory:FindFirstChild("Handle") then Handle = Accessory.Handle end
-
-        if Character and Humanoid and RootPart then
-            if RootPart.Velocity.Magnitude < 50 then getgenv().OldPos = RootPart.CFrame end
-            if THead then workspace.CurrentCamera.CameraSubject = THead
-            elseif not THead and Handle then workspace.CurrentCamera.CameraSubject = Handle
-            elseif THumanoid and TRootPart then workspace.CurrentCamera.CameraSubject = THumanoid end
-            if not TCharacter:FindFirstChildWhichIsA("BasePart") then return end
-            
-            local FPos = function(BasePart, Pos, Ang)
-                RootPart.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
-                Character:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
-                RootPart.Velocity = Vector3.new(flingForce, flingForce * 10, flingForce)
-                RootPart.RotVelocity = Vector3.new(flingForce * 20, flingForce * 20, flingForce * 20)
-            end
-            
-            local SFBasePart = function(BasePart)
-                local TimeToWait = duration or 2
-                local Time = tick()
-                local Angle = 0
-
-                repeat
-                    if RootPart and THumanoid then
-                        if BasePart.Velocity.Magnitude < 50 then
-                            Angle = Angle + 100
-                            FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle),0 ,0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(2.25, 1.5, -2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(-2.25, -1.5, 2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection,CFrame.Angles(math.rad(Angle), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection,CFrame.Angles(math.rad(Angle), 0, 0))
-                            task.wait()
-                        else
-                            FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, -THumanoid.WalkSpeed), CFrame.Angles(0, 0, 0)); task.wait()
-                            FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
-                            FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, -TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0)); task.wait()
-                            FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0)); task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0)); task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5 ,0), CFrame.Angles(math.rad(-90), 0, 0)); task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0)); task.wait()
-                        end
-                    else break end
-                until BasePart.Velocity.Magnitude > 500 or BasePart.Parent ~= TargetPlayer.Character or TargetPlayer.Parent ~= Players or not TargetPlayer.Character == TCharacter or THumanoid.Sit or tick() > Time + TimeToWait
-            end
-            
-            local previousDestroyHeight = workspace.FallenPartsDestroyHeight
-            workspace.FallenPartsDestroyHeight = 0/0
-            
-            local BV = Instance.new("BodyVelocity")
-            BV.Name = "EpixVel"
-            BV.Parent = RootPart
-            BV.Velocity = Vector3.new(flingForce, flingForce, flingForce)
-            BV.MaxForce = Vector3.new(1/0, 1/0, 1/0)
-            
-            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
-            
-            if TRootPart and THead then
-                if (TRootPart.CFrame.p - THead.CFrame.p).Magnitude > 5 then SFBasePart(THead) else SFBasePart(TRootPart) end
-            elseif TRootPart and not THead then SFBasePart(TRootPart)
-            elseif not TRootPart and THead then SFBasePart(THead)
-            elseif not TRootPart and not THead and Accessory and Handle then SFBasePart(Handle) end
-            
-            BV:Destroy()
-            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
-            workspace.CurrentCamera.CameraSubject = Humanoid
-            
-            repeat
-                if Character and Humanoid and RootPart and getgenv().OldPos then
-                    RootPart.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
-                    Character:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, .5, 0))
-                    Humanoid:ChangeState("GettingUp")
-                    table.foreach(Character:GetChildren(), function(_, x) if x:IsA("BasePart") then x.Velocity, x.RotVelocity = Vector3.new(), Vector3.new() end end)
-                end
-                task.wait()
-            until RootPart and getgenv().OldPos and (RootPart.Position - getgenv().OldPos.p).Magnitude < 25
-            workspace.FallenPartsDestroyHeight = previousDestroyHeight
-        end
-    end
-
-    local function getPlayerList()
-        local list = {}
-        for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(list, p.Name) end end
-        return list
-    end
-
-    FlingGroupBox:AddDropdown("FlingPlayer", {Text = "Select Players", Values = getPlayerList(), Multi = true, Searchable = true})
-    FlingGroupBox:AddButton({Text="Fling Selected", Func=function()
-        if not Options.FlingPlayer.Value then return end
-        for selectedPlayer, isSelected in pairs(Options.FlingPlayer.Value) do
-            if isSelected then
-                local targetPlayer = Players:FindFirstChild(tostring(selectedPlayer))
-                if targetPlayer then Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5) end
-            end
-        end
-    end})
-    FlingGroupBox:AddButton({Text="Fling All", Func=function()
-        for _, targetPlayer in ipairs(Players:GetPlayers()) do
-            if targetPlayer ~= LocalPlayer and targetPlayer.Character then Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5) end
-        end
-    end})
-    FlingGroupBox:AddButton({Text="Fling Beast", Func=function()
-        for _, targetPlayer in ipairs(Players:GetPlayers()) do
-            if targetPlayer ~= LocalPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Hammer") then
-                Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5); break
-            end
-        end
-    end})
-    FlingGroupBox:AddDivider()
-    FlingGroupBox:AddToggle("FlingBeastBind", {Text = "Fling Beast Bind Button", Default = false, Callback = function(v)
-        if v then BindModule:AddBindB("Fling Beast", function()
-            for _, targetPlayer in ipairs(Players:GetPlayers()) do
-                if targetPlayer ~= LocalPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Hammer") then
-                    Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5); break
-                end
-            end
-        end) else BindModule:DelBindB("Fling Beast") end
-    end})
-    FlingGroupBox:AddDivider()
-    FlingGroupBox:AddSlider("FlingTime", {Text="Fling Time", Default=5, Min=1, Max=25, Rounding=1, Callback=function(v) flingTime = v end})
-    FlingGroupBox:AddSlider("FlingForce", {Text="Fling Force", Default=50000, Min=1, Max=9999999, Rounding=0, Callback=function(v) flingForce = v end})
-    
-    ModuleMaid:GiveTask(Players.PlayerAdded:Connect(function() if Options.FlingPlayer then Options.FlingPlayer:SetValues(getPlayerList()) end end))
-    ModuleMaid:GiveTask(Players.PlayerRemoving:Connect(function() if Options.FlingPlayer then Options.FlingPlayer:SetValues(getPlayerList()) end end))
-
-    local FunMiscGB = Tabs.Features:AddRightGroupbox("Fun & Misc", "confetti_ball")
-    FunMiscGB:AddToggle("RGBAsync", {Text = "RGB ASync", Default = false})
-    FunMiscGB:AddSlider("RGBAsyncSpeed", {Text = "RGB Async Speed", Default = 5, Min = 1, Max = 10, Rounding = 0})
-    FunMiscGB:AddDivider()
-    FunMiscGB:AddToggle("RGBHammer", {Text = "RGB Hammer", Default = false})
-    FunMiscGB:AddToggle("RGBLight", {Text = "RGB Light", Default = false})
-    FunMiscGB:AddSlider("RGBHammerSpeed", {Text = "RGB Hammer Speed", Default = 5, Min = 1, Max = 10, Rounding = 0})
-    FunMiscGB:AddSlider("RGBLightSpeed", {Text = "RGB Light Speed", Default = 5, Min = 1, Max = 10, Rounding = 0})
-    FunMiscGB:AddDropdown("RGBMethod", {Text = "RGB Method", Values = {"HSV", "RGB"}, Default = 1})
-    FunMiscGB:AddDivider()
-    FunMiscGB:AddButton("Reset", function()
-        if Toggles.RGBAsync then Toggles.RGBAsync:SetValue(false) end
-        if Toggles.RGBHammer then Toggles.RGBHammer:SetValue(false) end
-        if Toggles.RGBLight then Toggles.RGBLight:SetValue(false) end
-        if Options.RGBAsyncSpeed then Options.RGBAsyncSpeed:SetValue(5) end
-        if Options.RGBHammerSpeed then Options.RGBHammerSpeed:SetValue(5) end
-        if Options.RGBLightSpeed then Options.RGBLightSpeed:SetValue(5) end
-        if Options.RGBMethod then Options.RGBMethod:SetValue("HSV") end
-    end)
-    FunMiscGB:AddButton("Rejoin", function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
-
-    local RGB = {HammerHighlight = nil, LastHammerUpdate = 0, LastLightUpdate = 0}
-    local function GetRGBColor(method, speed)
-        if (method or "HSV") == "HSV" then return Color3.fromHSV((tick() * (speed or 5) / 10) % 1, 1, 1)
-        else local t = tick() * (speed or 5); return Color3.fromRGB(127+127*math.sin(t), 127+127*math.sin(t+2), 127+127*math.sin(t+4)) end
-    end
-
-    ModuleMaid:GiveTask(RunService.Heartbeat:Connect(function()
-        local char = LocalPlayer.Character
-        if not char then return end
-        if Toggles.RGBHammer and Toggles.RGBHammer.Value then
-            local hammer = char:FindFirstChild("Hammer")
-            if hammer then
-                if not RGB.HammerHighlight then RGB.HammerHighlight = Instance.new("Highlight"); RGB.HammerHighlight.FillTransparency = 0.5; RGB.HammerHighlight.OutlineTransparency = 0; RGB.HammerHighlight.Parent = hammer end
-                if tick() - RGB.LastHammerUpdate >= 0.05 then
-                    local color = GetRGBColor(Options.RGBMethod.Value, (Toggles.RGBAsync.Value and Options.RGBAsyncSpeed.Value) or Options.RGBHammerSpeed.Value)
-                    RGB.HammerHighlight.FillColor = color; RGB.HammerHighlight.OutlineColor = color; RGB.LastHammerUpdate = tick()
-                end
-            end
-        elseif RGB.HammerHighlight then RGB.HammerHighlight:Destroy(); RGB.HammerHighlight = nil end
-        
-        if Toggles.RGBLight and Toggles.RGBLight.Value then
-            local gs = workspace:FindFirstChild(LocalPlayer.Name) and workspace[LocalPlayer.Name]:FindFirstChild("Gemstone")
-            local h = gs and gs:FindFirstChild("Handle")
-            if h then
-                local l = h:FindFirstChild("PointLight") or Instance.new("PointLight", h); l.Brightness = 3; l.Range = 15
-                if tick() - RGB.LastLightUpdate >= 0.05 then
-                    l.Color = GetRGBColor(Options.RGBMethod.Value, (Toggles.RGBAsync.Value and Options.RGBAsyncSpeed.Value) or Options.RGBLightSpeed.Value)
-                    RGB.LastLightUpdate = tick()
-                end
-            end
+    LightingMaid:GiveTask(RunService.Heartbeat:Connect(function()
+        workspace.CurrentCamera.FieldOfView = Options.FOVSlider and Options.FOVSlider.Value or 80
+        if Toggles.Fullbright and Toggles.Fullbright.Value then
+            local color = Options.FullbrightColor and Options.FullbrightColor.Value or Color3.fromRGB(255,255,255)
+            Lighting.Ambient = color; Lighting.ColorShift_Bottom = color; Lighting.ColorShift_Top = color
+            Lighting.OutdoorAmbient = color; Lighting.Brightness = 1; Lighting.ClockTime = 12; Lighting.GlobalShadows = false
         else
-            local gs = workspace:FindFirstChild(LocalPlayer.Name) and workspace[LocalPlayer.Name]:FindFirstChild("Gemstone")
-            if gs then
-                local h = gs:FindFirstChild("Handle")
-                if h then local l = h:FindFirstChild("PointLight"); if l then l:Destroy() end end
-            end
+            Lighting.Ambient = Color3.fromRGB(127, 127, 127); Lighting.ColorShift_Bottom = Color3.new(); Lighting.ColorShift_Top = Color3.new()
+            Lighting.OutdoorAmbient = Color3.fromRGB(127, 127, 127); Lighting.Brightness = 1; Lighting.ClockTime = 14; Lighting.GlobalShadows = true
         end
-    end))
-
-    local AutoInteractMaid = MaidClass.new()
-    ModuleMaid:GiveTask(AutoInteractMaid)
-    local FeaturesGB2 = Tabs.Features:AddRightGroupbox("Auto Interact", "mouse_pointer")
-    FeaturesGB2:AddToggle("AutoInteract", {Text = "Auto Interact", Default = false})
-    FeaturesGB2:AddDropdown("AutoInteractConditions", {Text = "Auto Interact Conditions", Values = {"Near PC", "Near Exit Door", "Near Freeze Pod"}, Default = {"Near PC", "Near Exit Door", "Near Freeze Pod"}, Multi = true})
-    
-    local interactedObjects = {}
-    local function isConditionEnabled(name) local val = Options.AutoInteractConditions.Value; return type(val)=="table" and (val[name]==true or table.find(val, name)) end
-
-    AutoInteractMaid:GiveTask(RunService.Heartbeat:Connect(function()
-        if Toggles.AutoInteract and Toggles.AutoInteract.Value then
-            local char = LocalPlayer.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            if root then
-                local function tryInteract(obj, range, condName)
-                    if not isConditionEnabled(condName) or not obj or not obj.Parent then return end
-                    local screen = obj:FindFirstChild("Screen")
-                    local pos = (screen and screen.Position) or (obj:IsA("Model") and obj:GetPivot().Position) or obj.Position
-                    if (root.Position - pos).Magnitude <= range then
-                        if condName == "Near PC" and screen then
-                            local c = screen.Color
-                            if math.abs(c.R*255 - 40) < 5 and math.abs(c.G*255 - 127) < 5 and math.abs(c.B*255 - 71) < 5 then return end
-                        elseif condName == "Near Exit Door" and interactedObjects[obj] then return end
-                        ReplicatedStorage.RemoteEvent:FireServer("Input", "Action", true)
-                        if condName == "Near Exit Door" then interactedObjects[obj] = true end
-                    else interactedObjects[obj] = nil end
-                end
-                for _, pc in ipairs(CacheManager.Computers) do tryInteract(pc, 5, "Near PC") end
-                for _, pod in ipairs(CacheManager.Pods) do tryInteract(pod, 10, "Near Freeze Pod") end
-                for _, exit in ipairs(CacheManager.Exits) do tryInteract(exit, 10, "Near Exit Door") end
-            end
+        if Toggles.NoFog and Toggles.NoFog.Value then
+            Lighting.FogEnd = 100000; Lighting.FogStart = 0; if Lighting:FindFirstChild("Atmosphere") then Lighting.Atmosphere.Density = 0 end
+        else
+            Lighting.FogEnd = 100; Lighting.FogStart = 0; if Lighting:FindFirstChild("Atmosphere") then Lighting.Atmosphere.Density = 0.3 end
         end
     end))
 end
