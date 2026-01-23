@@ -379,11 +379,10 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
                 if obj and obj.Parent then
                     local screen = obj:FindFirstChild("Screen")
                     local pos = (screen and screen.Position) or obj:GetPivot().Position
-                    if (root.Position - pos).Magnitude <= 5 then
+                    if (root.Position - pos).Magnitude <= 6 then
                          if screen then
                              local c = screen.Color
                              if math.abs(c.R*255 - 40) < 5 and math.abs(c.G*255 - 127) < 5 and math.abs(c.B*255 - 71) < 5 then
-                                 -- Completed
                              else
                                  doInteract()
                              end
