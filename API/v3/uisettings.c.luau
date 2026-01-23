@@ -1,5 +1,5 @@
 return function(Library, Window, Tabs, ThemeManager, SaveManager)
-    Tabs.UnxHub = Window:AddTab("UNXHub", "settings")
+    Tabs.UnxHub = Window:AddTab("UI Settings", "settings")
 
     local MenuGroup = Tabs.UnxHub:AddLeftGroupbox("Menu")
 
