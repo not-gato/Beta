@@ -1,4 +1,4 @@
-return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
+return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local TweenService = game:GetService("TweenService")
@@ -322,9 +322,8 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
 
     if LocalPlayer.Character then ApplyCharacterMods(); ApplyZoom(); setupSpeedGlitch(LocalPlayer.Character) end
     
-    local lastDropdownUpdate = 0
-    ModuleMaid:GiveTask(RunService.Heartbeat:Connect(function()
-        if tick() - lastDropdownUpdate > 1 then
+    if Scheduler then
+        ModuleMaid:GiveTask(Scheduler.Interval(1, function()
             local newSurvivors = {}
             for _, player in ipairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character and not player.Character:FindFirstChild("Hammer") then
@@ -344,10 +343,8 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
                 Options.ComputerDropdown:SetValues(newComputers)
                 if not table.find(newComputers, Options.ComputerDropdown.Value) then Options.ComputerDropdown:SetValue(newComputers[1]) end
             end
-
-            lastDropdownUpdate = tick()
-        end
-    end))
+        end))
+    end
 
     local function isConditionEnabled(name)
         local val = Options.AutoInteractConditions.Value
