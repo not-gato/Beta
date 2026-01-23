@@ -27,37 +27,37 @@ local function unxgmfu(url, ...)
     local success, response = pcall(request, {Url = url, Method = "GET"})
     
     if not success or not response or not response.Body then
-        warn("[UNXHub]: Failed to fetch URL: " .. url .. " | Error: " .. tostring(response))
+        warn("[UNXHub] Failed to fetch URL: " .. url .. " | Error: " .. tostring(response))
         Library:Notify("Failed to fetch " .. fileName, 2)
         return
     end
 
     local chunk, loadErr = loadstring(response.Body)
     if not chunk then
-        warn("[UNXHub]: Syntax Error in " .. url .. ": " .. tostring(loadErr))
+        warn("[UNXHub] Syntax Error in " .. url .. ": " .. tostring(loadErr))
         Library:Notify("Syntax Error in " .. fileName, 2)
         return
     end
 
     local chunkSuccess, moduleFunc = SafeCallback(chunk)
     if not chunkSuccess then
-        warn("[UNXHub]: Error initializing chunk " .. url .. ": " .. tostring(moduleFunc))
+        warn("[UNXHub] Error initializing chunk " .. url .. ": " .. tostring(moduleFunc))
         Library:Notify("Init Error in " .. fileName, 2)
         return
     end
 
     if type(moduleFunc) ~= "function" then
-        warn("[UNXHub]: Module at " .. url .. " did not return a function, wtf?!")
-        Library:Notify(fileName .. " invalid return, wtf?!", 2)
+        warn("[UNXHub] Module at " .. url .. " did not return a function, wtf?!!")
+        Library:Notify(fileName .. " invalid return, wtf?!!", 2)
         return
     end
 
     local runSuccess, runErr = SafeCallback(moduleFunc, ...)
     if not runSuccess then
-        warn("[UNXHub]: Runtime Error inside " .. url .. ": " .. tostring(runErr))
+        warn("[UNXHub] Runtime Error inside " .. url .. ": " .. tostring(runErr))
         Library:Notify("Runtime Error in " .. fileName, 2)
     else
-        Library:Notify("Loaded " .. fileName, 1)
+        Library:Notify("Loaded Sucessfully: " .. fileName, 2)
     end
 end
 
@@ -69,15 +69,14 @@ local maidSuccess, maidResult = pcall(function()
 end)
 
 if not maidSuccess then
-    warn("[UNXHub]: Failed to load Maid class: " .. tostring(maidResult) .."!!!!!!)
+    warn("[UNXHub] Critical: Failed to load Maid class: " .. tostring(maidResult))
     return
 end
-
 MaidClass = maidResult
 
 local Window = Library:CreateWindow({
     Title = "UNXHub | FTF",
-    Footer = "Version: " .. (getgenv().unxshared and getgenv().unxshared.version or "Modular") .. ", Game: " .. (getgenv().unxshared and getgenv().unxshared.gamename or "Unknown"),
+    Footer = "Version: " .. (getgenv().unxshared and getgenv().unxshared.version or "Modular") .. ", Game: " .. (getgenv().unxshared and getgenv().unxshared.gamename or "Unknown") .. ", Player: " .. (getgenv().unxshared and getgenv().unxshared.playername or "Unknown"),
     Icon = 73740010358428,
     NotifySide = "Right",
     ShowCustomCursor = true,
