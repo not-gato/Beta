@@ -1,25 +1,25 @@
-return function(Library, Tabs, RootMaid, SaveManager, ThemeManager)
+return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager)
     local UserInputService = game:GetService("UserInputService")
     local TweenService = game:GetService("TweenService")
     local BindModule = loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Bind.lua"))()
     
     local MenuGroup = Tabs["UI Settings"]:AddLeftGroupbox("Menu", "wrench")
     MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", {Default = "RightShift", NoUI = true, Text = "Menu keybind"})
-    MenuGroup:AddButton("Unload", function() Library:Unload() end)
+    MenuGroup:AddButton("Unload", newcclosure(function() Library:Unload() end))
     MenuGroup:AddDivider()
-    MenuGroup:AddButton("Reset Bind Buttons Position", function() if BindModule then BindModule:ResetPos() end end)
+    MenuGroup:AddButton("Reset Bind Buttons Position", newcclosure(function() if BindModule then BindModule:ResetPos() end end))
     MenuGroup:AddDropdown("BindShape", {
         Text = "Bind Buttons Shape", Values = {"Circle", "Square", "Rounded"}, Default = 1,
-        Callback = function(v) if BindModule then BindModule:MakeAllShape(v=="Circle" and 0 or v=="Square" and 1 or 2) end end
+        Callback = newcclosure(function(v) if BindModule then BindModule:MakeAllShape(v=="Circle" and 0 or v=="Square" and 1 or 2) end end)
     })
-    MenuGroup:AddSlider("BindSize", {Text = "Bind Button Size", Default = 1, Min = 0.1, Max = 10, Rounding = 1, Callback = function(v) if BindModule then BindModule:SetSizeB(v) end end})
-    MenuGroup:AddButton("Apply Bind Button Configs", function()
+    MenuGroup:AddSlider("BindSize", {Text = "Bind Button Size", Default = 1, Min = 0.1, Max = 10, Rounding = 1, Callback = newcclosure(function(v) if BindModule then BindModule:SetSizeB(v) end end)})
+    MenuGroup:AddButton("Apply Bind Button Configs", newcclosure(function()
         local shape = Library.Options.BindShape.Value
         if BindModule then
             BindModule:MakeAllShape(shape=="Circle" and 0 or shape=="Square" and 1 or 2)
             BindModule:SetSizeB(Library.Options.BindSize.Value)
         end
-    end)
+    end))
 
     Library.ToggleKeybind = Library.Options.MenuKeybind
     ThemeManager:SetLibrary(Library)
@@ -57,7 +57,7 @@ return function(Library, Tabs, RootMaid, SaveManager, ThemeManager)
     local uiStroke = Instance.new("UIStroke", button); uiStroke.Color = Color3.fromRGB(255, 255, 255); uiStroke.Thickness = 2
     local uiGradient = Instance.new("UIGradient", uiStroke); uiGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(180, 140, 100)), ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 90, 65))}
 
-    local function triggerSmallHaptic()
+    local triggerSmallHaptic = newcclosure(function()
         if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
             local success, supported = pcall(function() return game:GetService("HapticService"):IsMotorSupported(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small) end)
             if success and supported then
@@ -65,27 +65,27 @@ return function(Library, Tabs, RootMaid, SaveManager, ThemeManager)
                 task.delay(0.06, function() game:GetService("HapticService"):SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0) end)
             end
         end
-    end
+    end)
 
     local currentInput, dragStartPos, isDragging, clickStartTime = nil, nil, false, 0
     local dragThreshold = 8
 
-    RootMaid:GiveTask(button.InputBegan:Connect(function(input)
+    RootMaid:GiveTask(button.InputBegan:Connect(newcclosure(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             if currentInput then return end
             currentInput = input; dragStartPos = input.Position; isDragging = false; clickStartTime = tick()
         end
-    end))
+    end)))
 
-    RootMaid:GiveTask(UserInputService.InputChanged:Connect(function(input)
+    RootMaid:GiveTask(UserInputService.InputChanged:Connect(newcclosure(function(input)
         if input == currentInput and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStartPos
             if delta.Magnitude > dragThreshold then isDragging = true end
             if isDragging then TweenService:Create(button, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {Position = UDim2.new(0, dragStartPos.X + delta.X, 0, dragStartPos.Y + delta.Y)}):Play() end
         end
-    end))
+    end)))
 
-    RootMaid:GiveTask(UserInputService.InputEnded:Connect(function(input)
+    RootMaid:GiveTask(UserInputService.InputEnded:Connect(newcclosure(function(input)
         if input == currentInput then
             if not isDragging and tick() - clickStartTime < 0.3 then
                 Library:Toggle()
@@ -102,34 +102,34 @@ return function(Library, Tabs, RootMaid, SaveManager, ThemeManager)
             end
             currentInput = nil; isDragging = false
         end
-    end))
+    end)))
 
-    RootMaid:GiveTask(button.MouseEnter:Connect(function() TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, button.Size.X.Offset * 1.08, 0, button.Size.Y.Offset * 1.08)}):Play() end))
+    RootMaid:GiveTask(button.MouseEnter:Connect(newcclosure(function() TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, button.Size.X.Offset * 1.08, 0, button.Size.Y.Offset * 1.08)}):Play() end)))
     
-    local function updateButtonSize()
+    local updateButtonSize = newcclosure(function()
         local cam = workspace.CurrentCamera
         if not cam then return end
         local vp = cam.ViewportSize
         local base = math.clamp(math.min(vp.X or 800, vp.Y or 600) * 0.08, 50, 80)
         local scale = (Library.Options.CustomToggleSize and Library.Options.CustomToggleSize.Value or 100) / 100
         button.Size = UDim2.new(0, base * scale, 0, base * scale)
-    end
+    end)
     
-    RootMaid:GiveTask(button.MouseLeave:Connect(function() TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, button.Size.X.Offset, 0, button.Size.Y.Offset)}):Play(); updateButtonSize() end))
+    RootMaid:GiveTask(button.MouseLeave:Connect(newcclosure(function() TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, button.Size.X.Offset, 0, button.Size.Y.Offset)}):Play(); updateButtonSize() end)))
     RootMaid:GiveTask(workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateButtonSize))
 
     local showToggle = isfile("showtoggle.unx")
-    MenuGroup:AddToggle("CustomToggle", {Text = "Custom Toggle", Default = showToggle, Callback = function(v) 
+    MenuGroup:AddToggle("CustomToggle", {Text = "Custom Toggle", Default = showToggle, Callback = newcclosure(function(v) 
         if v then writefile("showtoggle.unx", "") else if isfile("showtoggle.unx") then delfile("showtoggle.unx") end end
         button.Visible = v 
-    end})
+    end)})
 
     local toggleSize = 100
-    if isfile("togglesize.unx") then pcall(function() toggleSize = tonumber(readfile("togglesize.unx")) or 100 end) end
-    MenuGroup:AddSlider("CustomToggleSize", {Text = "Custom Toggle Size (%)", Default = toggleSize, Min = 50, Max = 200, Rounding = 0, Callback = function(v)
+    if isfile("togglesize.unx") then pcall(newcclosure(function() toggleSize = tonumber(readfile("togglesize.unx")) or 100 end)) end
+    MenuGroup:AddSlider("CustomToggleSize", {Text = "Custom Toggle Size (%)", Default = toggleSize, Min = 50, Max = 200, Rounding = 0, Callback = newcclosure(function(v)
         writefile("togglesize.unx", tostring(v)); updateButtonSize()
-    end})
+    end)})
     
     if showToggle then button.Visible = true end
     updateButtonSize()
-end
+end)
