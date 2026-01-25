@@ -61,7 +61,9 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
                         end
                     end
                 else
-                    for _, pc in ipairs(CacheManager.Computers) do
+                    local computers = CacheManager.Computers
+                    for i = 1, #computers do
+                        local pc = computers[i]
                         local screen = pc:FindFirstChild("Screen")
                         local isDone = false
                         if screen and screen:IsA("BasePart") then
