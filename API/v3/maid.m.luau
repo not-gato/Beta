@@ -1,16 +1,16 @@
-return function()
+return newcclosure(function()
     local Maid = {}
     Maid.ClassName = "Maid"
     Maid.__index = Maid
 
-    function Maid.new()
+    Maid.new = newcclosure(function()
         return setmetatable({
             _tasks = {},
             _destroyed = false,
         }, Maid)
-    end
+    end)
 
-    local function cleanupTask(task)
+    local cleanupTask = newcclosure(function(task)
         if not task then return end
         local t = typeof(task)
         if t == "RBXScriptConnection" then
@@ -22,9 +22,9 @@ return function()
         elseif type(task) == "table" and type(task.Destroy) == "function" then
             task:Destroy()
         end
-    end
+    end)
 
-    function Maid:Give(key, task)
+    Maid.Give = newcclosure(function(self, key, task)
         if self._destroyed then
             cleanupTask(task)
             return
@@ -34,18 +34,18 @@ return function()
         end
         self._tasks[key] = task
         return task
-    end
+    end)
 
-    function Maid:GiveTask(task)
+    Maid.GiveTask = newcclosure(function(self, task)
         if self._destroyed then
             cleanupTask(task)
             return
         end
         table.insert(self._tasks, task)
         return task
-    end
+    end)
 
-    function Maid:DoCleaning()
+    Maid.DoCleaning = newcclosure(function(self)
         if self._destroyed then return end
         self._destroyed = true
         for key, task in pairs(self._tasks) do
@@ -53,15 +53,15 @@ return function()
             self._tasks[key] = nil
         end
         self._destroyed = false
-    end
+    end)
 
-    function Maid:Destroy()
+    Maid.Destroy = newcclosure(function(self)
         self._destroyed = true
         for key, task in pairs(self._tasks) do
             cleanupTask(task)
             self._tasks[key] = nil
         end
-    end
+    end)
 
     return Maid
-end
+end)
