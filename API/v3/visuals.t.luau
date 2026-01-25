@@ -1,4 +1,4 @@
-return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
+return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local Lighting = game:GetService("Lighting")
@@ -52,19 +52,19 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
 
     local ESP = {Drawings = {}, Tracers = {}, Highlights = {}}
     
-    local function CreateLine()
+    local CreateLine = newcclosure(function()
         local l = Drawing.new("Line")
         l.Visible = false; l.Thickness = 2; l.Transparency = 1
         return l
-    end
+    end)
 
-    local function CreateHighlight()
+    local CreateHighlight = newcclosure(function()
         local h = Instance.new("Highlight")
         h.FillTransparency = 1; h.OutlineTransparency = 0; h.Enabled = false
         return h
-    end
+    end)
 
-    local function CreateBillboard(target)
+    local CreateBillboard = newcclosure(function(target)
         if not target then return nil end
         local billboard = Instance.new("BillboardGui")
         billboard.Name = "unxcontainer"
@@ -91,12 +91,12 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
         
         if target:IsA("BasePart") or target:IsA("Model") then billboard.Parent = target else billboard.Parent = game.CoreGui end
         return billboard
-    end
+    end)
 
-    local function GetRainbow(speed) return Color3.fromHSV((tick() * ((speed or 1) / 10)) % 1, 1, 1) end
-    local function GetDarkerColor(c) return Color3.new(math.clamp(c.R * 0.784, 0, 1), math.clamp(c.G * 0.784, 0, 1), math.clamp(c.B * 0.784, 0, 1)) end
+    local GetRainbow = newcclosure(function(speed) return Color3.fromHSV((tick() * ((speed or 1) / 10)) % 1, 1, 1) end)
+    local GetDarkerColor = newcclosure(function(c) return Color3.new(math.clamp(c.R * 0.784, 0, 1), math.clamp(c.G * 0.784, 0, 1), math.clamp(c.B * 0.784, 0, 1)) end)
 
-    local function RemoveESP(key)
+    local RemoveESP = newcclosure(function(key)
         local d = ESP.Drawings[key]
         if d and d:IsA("Instance") then d:Destroy() end
         local t = ESP.Tracers[key]
@@ -104,32 +104,32 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
         local h = ESP.Highlights[key]
         if h and h.Destroy then h:Destroy() end
         ESP.Drawings[key], ESP.Tracers[key], ESP.Highlights[key] = nil, nil, nil
-    end
+    end)
 
-    local function ClearAllESP()
+    local ClearAllESP = newcclosure(function()
         for key in pairs(ESP.Drawings) do RemoveESP(key) end
         for key in pairs(ESP.Tracers) do RemoveESP(key) end
         for key in pairs(ESP.Highlights) do RemoveESP(key) end
-    end
+    end)
     VisualsMaid:GiveTask(ClearAllESP)
 
-    ConfigTab:AddButton("Re-load ESPs", function() ClearAllESP() CacheManager:Update() end)
+    ConfigTab:AddButton("Re-load ESPs", newcclosure(function() ClearAllESP() CacheManager:Update() end))
 
-    local function MonitorPlayer(player)
+    local MonitorPlayer = newcclosure(function(player)
         if player == LocalPlayer then return end
-        VisualsMaid:GiveTask(player.CharacterAdded:Connect(function(char)
-            VisualsMaid:GiveTask(char.AncestryChanged:Connect(function(_, parent)
+        VisualsMaid:GiveTask(player.CharacterAdded:Connect(newcclosure(function(char)
+            VisualsMaid:GiveTask(char.AncestryChanged:Connect(newcclosure(function(_, parent)
                 if not parent then RemoveESP("Beast_" .. player.UserId); RemoveESP("Surv_" .. player.UserId) end
-            end))
-        end))
-        VisualsMaid:GiveTask(player.CharacterRemoving:Connect(function() RemoveESP("Beast_" .. player.UserId); RemoveESP("Surv_" .. player.UserId) end))
-    end
+            end)))
+        end)))
+        VisualsMaid:GiveTask(player.CharacterRemoving:Connect(newcclosure(function() RemoveESP("Beast_" .. player.UserId); RemoveESP("Surv_" .. player.UserId) end)))
+    end)
 
     for _, p in ipairs(Players:GetPlayers()) do MonitorPlayer(p) end
     VisualsMaid:GiveTask(Players.PlayerAdded:Connect(MonitorPlayer))
-    VisualsMaid:GiveTask(Players.PlayerRemoving:Connect(function(player) RemoveESP("Beast_" .. player.UserId); RemoveESP("Surv_" .. player.UserId) end))
+    VisualsMaid:GiveTask(Players.PlayerRemoving:Connect(newcclosure(function(player) RemoveESP("Beast_" .. player.UserId); RemoveESP("Surv_" .. player.UserId) end)))
 
-    local function UpdateESP()
+    local UpdateESP = newcclosure(function()
         local activeKeys = {}
         local cam = workspace.CurrentCamera
         if not cam then return end
@@ -310,22 +310,22 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
         for key in pairs(ESP.Drawings) do
             if not activeKeys[key] and not string.find(key, "Beast_") and not string.find(key, "Surv_") then RemoveESP(key) end
         end
-    end
+    end)
     
     VisualsMaid:GiveTask(RunService.RenderStepped:Connect(UpdateESP))
     
     if Scheduler then
-        VisualsMaid:GiveTask(Scheduler.Interval(1, function()
+        VisualsMaid:GiveTask(Scheduler.Interval(1, newcclosure(function()
             if Toggles.AutoReloadESP and Toggles.AutoReloadESP.Value then
                 CacheManager:Update()
             end
-        end))
+        end)))
     end
 
     local LightingMaid = MaidClass.new()
     VisualsMaid:GiveTask(LightingMaid)
 
-    LightingMaid:GiveTask(RunService.Heartbeat:Connect(function()
+    LightingMaid:GiveTask(RunService.Heartbeat:Connect(newcclosure(function()
         workspace.CurrentCamera.FieldOfView = Options.FOVSlider and Options.FOVSlider.Value or 80
         if Toggles.Fullbright and Toggles.Fullbright.Value then
             local color = Options.FullbrightColor and Options.FullbrightColor.Value or Color3.fromRGB(255,255,255)
@@ -340,5 +340,5 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
         else
             Lighting.FogEnd = 100; Lighting.FogStart = 0; if Lighting:FindFirstChild("Atmosphere") then Lighting.Atmosphere.Density = 0.3 end
         end
-    end))
-end
+    end)))
+end)
