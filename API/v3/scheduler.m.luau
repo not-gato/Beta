@@ -1,4 +1,4 @@
-return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
+return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass)
     local RunService = game:GetService("RunService")
     
     local Scheduler = {}
@@ -7,7 +7,7 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
 
     local ActiveIntervals = {}
     
-    SchedulerMaid:GiveTask(RunService.Heartbeat:Connect(function()
+    SchedulerMaid:GiveTask(RunService.Heartbeat:Connect(newcclosure(function()
         local now = os.clock()
         for i = #ActiveIntervals, 1, -1 do
             local taskObj = ActiveIntervals[i]
@@ -16,9 +16,9 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
                 task.spawn(taskObj.Callback)
             end
         end
-    end))
+    end)))
 
-    function Scheduler.Interval(seconds, callback)
+    Scheduler.Interval = newcclosure(function(seconds, callback)
         local taskObj = {
             Rate = seconds,
             Callback = callback,
@@ -43,30 +43,30 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass)
         
         function taskObj:Destroy() self:Disconnect() end
 
-        SchedulerMaid:GiveTask(function() taskObj:Disconnect() end)
+        SchedulerMaid:GiveTask(newcclosure(function() taskObj:Disconnect() end))
         return taskObj
-    end
+    end)
 
-    function Scheduler.Delay(seconds, callback)
+    Scheduler.Delay = newcclosure(function(seconds, callback)
         local thread = task.delay(seconds, callback)
-        SchedulerMaid:GiveTask(function() if thread then task.cancel(thread) end end)
+        SchedulerMaid:GiveTask(newcclosure(function() if thread then task.cancel(thread) end end))
         return thread
-    end
+    end)
     
-    function Scheduler.Render(callback)
+    Scheduler.Render = newcclosure(function(callback)
         local conn = RunService.RenderStepped:Connect(callback)
         SchedulerMaid:GiveTask(conn)
         return conn
-    end
+    end)
     
-    function Scheduler.Heartbeat(callback)
+    Scheduler.Heartbeat = newcclosure(function(callback)
         local conn = RunService.Heartbeat:Connect(callback)
         SchedulerMaid:GiveTask(conn)
         return conn
-    end
+    end)
 
     getgenv().Scheduler = Scheduler
-    RootMaid:GiveTask(function() getgenv().Scheduler = nil end)
+    RootMaid:GiveTask(newcclosure(function() getgenv().Scheduler = nil end))
 
     return Scheduler
-end
+end)
