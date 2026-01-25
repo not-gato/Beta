@@ -17,6 +17,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
     FeaturesGB:AddToggle("NoPCErrorBind", {
         Text = "No PC Error BindButton", Default = false,
         Callback = newcclosure(function(v)
+            if not BindModule then return end
             if v then BindModule:AddToggleBB("No PC Err", newcclosure(function() if Toggles.NoPCError then Toggles.NoPCError:SetValue(true) end end), newcclosure(function() if Toggles.NoPCError then Toggles.NoPCError:SetValue(false) end end))
             else BindModule:DelBindB("No PC Err") end
         end)
@@ -28,6 +29,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
     FeaturesGB:AddToggle("DoPCRemotelyBind", {
         Text = "Bigger PC Range BindButton", Default = false,
         Callback = newcclosure(function(v)
+            if not BindModule then return end
             if v then BindModule:AddToggleBB("Big Range", newcclosure(function() if Toggles.DoPCRemotely then Toggles.DoPCRemotely:SetValue(true) end end), newcclosure(function() if Toggles.DoPCRemotely then Toggles.DoPCRemotely:SetValue(false) end end))
             else BindModule:DelBindB("Big Range") end
         end)
@@ -239,7 +241,8 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
     end)})
     FlingGroupBox:AddDivider()
     FlingGroupBox:AddToggle("FlingBeastBind", {Text = "Fling Beast Bind Button", Default = false, Callback = newcclosure(function(v)
-        if v then BindModule:AddButton("Fling Beast", newcclosure(function()
+        if not BindModule then return end
+        if v then BindModule:BindB("Fling Beast", newcclosure(function()
             for _, targetPlayer in ipairs(Players:GetPlayers()) do
                 if targetPlayer ~= LocalPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Hammer") then
                     Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5); break
