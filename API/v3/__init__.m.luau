@@ -9,17 +9,17 @@ local SaveManager = loadstring(game:HttpGet(Repo .. "addons/SaveManager.lua"))()
 
 Library.ForceCheckbox = true
 
-local function SafeCallback(func, ...)
+local SafeCallback = newcclosure(function(func, ...)
     local success, result = pcall(func, ...)
     if not success then
         return false, result
     end
     return true, result
-end
+end)
 
 local request = http_request or request or (http and http.request)
 
-local function unxgmfu(url, ...)
+local unxgmfu = newcclosure(function(url, ...)
     local fileName = url:match("^.+/(.+)$") or url
     
     Library:Notify("Fetching " .. fileName, 1)
@@ -61,7 +61,7 @@ local function unxgmfu(url, ...)
         Library:Notify("Loaded Sucessfully: " .. fileName, 2)
         return runResult
     end
-end
+end)
 
 local MaidClass = unxgmfu(BaseUrl .. "maid.m.luau")
 if not MaidClass then return end
@@ -90,7 +90,7 @@ local CacheManager = {
     Exits = {}
 }
 
-function CacheManager:Update()
+CacheManager.Update = newcclosure(function(self)
     local pcs = {}
     local pods = {}
     local exits = {}
@@ -115,16 +115,16 @@ function CacheManager:Update()
     self.Computers = pcs
     self.Pods = pods
     self.Exits = exits
-end
+end)
 
 CacheManager:Update()
 
 local Scheduler = unxgmfu(BaseUrl .. "scheduler.m.luau", Library, Tabs, RootMaid, CacheManager, MaidClass)
 
 if Scheduler then
-    RootMaid:GiveTask(Scheduler.Interval(5, function()
+    RootMaid:GiveTask(Scheduler.Interval(5, newcclosure(function()
         CacheManager:Update()
-    end))
+    end)))
 end
 
 unxgmfu(BaseUrl .. "main.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
@@ -132,8 +132,8 @@ unxgmfu(BaseUrl .. "visuals.t.luau", Library, Tabs, RootMaid, CacheManager, Maid
 unxgmfu(BaseUrl .. "features.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
 unxgmfu(BaseUrl .. "uisettings.t.luau", Library, Tabs, RootMaid, SaveManager, ThemeManager)
 
-Library:OnUnload(function()
+Library:OnUnload(newcclosure(function()
     if getgenv().unxshared then getgenv().unxshared.isloaded = false end
     RootMaid:Destroy()
     Library.Unloaded = true
-end)
+end))
