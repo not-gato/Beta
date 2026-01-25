@@ -113,7 +113,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
     end)
     VisualsMaid:GiveTask(ClearAllESP)
 
-    ConfigTab:AddButton("Re-load ESPs", newcclosure(function() ClearAllESP() CacheManager:Update() end))
+    ConfigTab:AddButton("Re-load ESPs", function() ClearAllESP() CacheManager:Update() end)
 
     local MonitorPlayer = newcclosure(function(player)
         if player == LocalPlayer then return end
@@ -134,24 +134,19 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         local cam = workspace.CurrentCamera
         if not cam then return end
         local camPos = cam.CFrame.Position
+        local viewportSize = cam.ViewportSize
+        local centerScreen = Vector2.new(viewportSize.X/2, viewportSize.Y)
         local showDist = Toggles.ShowDistance and Toggles.ShowDistance.Value
 
-        for _, bb in pairs(ESP.Drawings) do 
-            if bb and bb:IsA("BillboardGui") then
-                local txt = bb:FindFirstChild("TextLabel")
-                if txt then txt.TextSize = Options.ESPTextSize and Options.ESPTextSize.Value or 16 end
-            end 
-        end
-        for _, l in pairs(ESP.Tracers) do if l then l.Thickness = Options.TracerThickness and Options.TracerThickness.Value or 2 end end
-        for _, h in pairs(ESP.Highlights) do 
-            if h then 
-                h.FillTransparency = (Options.OutlineFillTransparency and Options.OutlineFillTransparency.Value or 100) / 100
-                h.OutlineTransparency = (Options.OutlineTransparency and Options.OutlineTransparency.Value or 0) / 100
-            end 
-        end
+        local espTextSize = Options.ESPTextSize and Options.ESPTextSize.Value or 16
+        local tracerThickness = Options.TracerThickness and Options.TracerThickness.Value or 2
+        local fillTransp = (Options.OutlineFillTransparency and Options.OutlineFillTransparency.Value or 100) / 100
+        local outlineTransp = (Options.OutlineTransparency and Options.OutlineTransparency.Value or 0) / 100
 
         if Toggles.ComputerESP and Toggles.ComputerESP.Value then
-            for i, obj in ipairs(CacheManager.Computers) do
+            local computers = CacheManager.Computers
+            for i = 1, #computers do
+                local obj = computers[i]
                 if obj and obj.Parent then
                     local screen = obj:FindFirstChild("Screen")
                     local isCompleted, isError = false, false
@@ -181,6 +176,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
                     if billboard then
                         local txt = billboard:FindFirstChild("TextLabel")
                         if txt then
+                            txt.TextSize = espTextSize
                             txt.Text = "Computer #"..i..(showDist and " ["..math.floor((camPos-pos).Magnitude).."]" or "")..(isError and " (ERROR)" or (isCompleted and " (COMPLETED)" or ""))
                             txt.TextColor3 = color
                             local stroke = txt:FindFirstChild("UIStroke")
@@ -192,7 +188,8 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
                     if Toggles.ComputerTracers.Value then
                         local screenPos, onScreen = cam:WorldToViewportPoint(pos + Vector3.new(0, 5, 0))
                         if onScreen then
-                            tracer.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y)
+                            tracer.Thickness = tracerThickness
+                            tracer.From = centerScreen
                             tracer.To = Vector2.new(screenPos.X, screenPos.Y)
                             tracer.Color = color
                             tracer.Visible = true
@@ -200,13 +197,14 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
                     else tracer.Visible = false end
                     
                     if Toggles.OutlineComputers.Value then
-                        hl.Parent = obj; hl.FillColor = color; hl.OutlineColor = color; hl.Enabled = true
+                        hl.Parent = obj; hl.FillColor = color; hl.OutlineColor = color; hl.FillTransparency = fillTransp; hl.OutlineTransparency = outlineTransp; hl.Enabled = true
                     else hl.Enabled = false end
                 end
             end
         else
-            for i, obj in ipairs(CacheManager.Computers) do
-                 local key = "Comp_" .. obj:GetDebugId()
+            local computers = CacheManager.Computers
+            for i = 1, #computers do
+                 local key = "Comp_" .. computers[i]:GetDebugId()
                  if ESP.Drawings[key] then ESP.Drawings[key].Enabled = false end
                  if ESP.Tracers[key] then ESP.Tracers[key].Visible = false end
                  if ESP.Highlights[key] then ESP.Highlights[key].Enabled = false end
@@ -214,7 +212,9 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         end
 
         if Toggles.FreezePodESP and Toggles.FreezePodESP.Value then
-            for i, obj in ipairs(CacheManager.Pods) do
+            local pods = CacheManager.Pods
+            for i = 1, #pods do
+                local obj = pods[i]
                 if obj and obj.Parent then
                     local key = "Pod_" .. obj:GetDebugId(); activeKeys[key] = true
                     local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
@@ -230,6 +230,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
                     if billboard then
                         local txt = billboard:FindFirstChild("TextLabel")
                         if txt then
+                            txt.TextSize = espTextSize
                             txt.Text = "Freeze Pod #"..i..(showDist and " ["..math.floor((camPos-pos).Magnitude).."]" or "")
                             txt.TextColor3 = color
                             if txt:FindFirstChild("UIStroke") then txt:FindFirstChild("UIStroke").Color = GetDarkerColor(color) end
@@ -238,21 +239,24 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
                     end
                     if Toggles.FreezePodTracers.Value then
                         local screenPos, onScreen = cam:WorldToViewportPoint(pos + Vector3.new(0, 5, 0))
-                        if onScreen then tracer.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y); tracer.To = Vector2.new(screenPos.X, screenPos.Y); tracer.Color = color; tracer.Visible = true else tracer.Visible = false end
+                        if onScreen then tracer.Thickness = tracerThickness; tracer.From = centerScreen; tracer.To = Vector2.new(screenPos.X, screenPos.Y); tracer.Color = color; tracer.Visible = true else tracer.Visible = false end
                     else tracer.Visible = false end
-                    if Toggles.OutlineFreezePod.Value then hl.Parent = obj; hl.FillColor = color; hl.OutlineColor = color; hl.Enabled = true else hl.Enabled = false end
+                    if Toggles.OutlineFreezePod.Value then hl.Parent = obj; hl.FillColor = color; hl.OutlineColor = color; hl.FillTransparency = fillTransp; hl.OutlineTransparency = outlineTransp; hl.Enabled = true else hl.Enabled = false end
                 end
             end
         else
-            for i, obj in ipairs(CacheManager.Pods) do
-                 local key = "Pod_" .. obj:GetDebugId()
+            local pods = CacheManager.Pods
+            for i = 1, #pods do
+                 local key = "Pod_" .. pods[i]:GetDebugId()
                  if ESP.Drawings[key] then ESP.Drawings[key].Enabled = false end
                  if ESP.Tracers[key] then ESP.Tracers[key].Visible = false end
                  if ESP.Highlights[key] then ESP.Highlights[key].Enabled = false end
             end
         end
 
-        for _, player in ipairs(Players:GetPlayers()) do
+        local players = Players:GetPlayers()
+        for i = 1, #players do
+            local player = players[i]
             if player ~= LocalPlayer and player.Character then
                 local isBeast = player.Character:FindFirstChild("Hammer") ~= nil
                 local key = (isBeast and "Beast_" or "Surv_") .. player.UserId
@@ -277,6 +281,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
                         if billboard then
                             local txt = billboard:FindFirstChild("TextLabel")
                             if txt then
+                                txt.TextSize = espTextSize
                                 txt.Text = player.DisplayName..(isBeast and " [BEAST]" or " [SURV]")..(showDist and " ["..math.floor((camPos-root.Position).Magnitude).."]" or "")
                                 txt.TextColor3 = color
                                 if txt:FindFirstChild("UIStroke") then txt:FindFirstChild("UIStroke").Color = GetDarkerColor(color) end
@@ -286,10 +291,10 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
 
                         if (isBeast and Toggles.BeastTracers.Value) or (not isBeast and Toggles.SurvivorTracers.Value) then
                             local screenPos, onScreen = cam:WorldToViewportPoint(root.Position + Vector3.new(0,3.5,0))
-                            if onScreen then tracer.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y); tracer.To = Vector2.new(screenPos.X, screenPos.Y); tracer.Color = color; tracer.Visible = true else tracer.Visible = false end
+                            if onScreen then tracer.Thickness = tracerThickness; tracer.From = centerScreen; tracer.To = Vector2.new(screenPos.X, screenPos.Y); tracer.Color = color; tracer.Visible = true else tracer.Visible = false end
                         else tracer.Visible = false end
 
-                        if (isBeast and Toggles.OutlineBeast.Value) or (not isBeast and Toggles.OutlineSurvivors.Value) then hl.Parent = player.Character; hl.FillColor = color; hl.OutlineColor = color; hl.Enabled = true else hl.Enabled = false end
+                        if (isBeast and Toggles.OutlineBeast.Value) or (not isBeast and Toggles.OutlineSurvivors.Value) then hl.Parent = player.Character; hl.FillColor = color; hl.OutlineColor = color; hl.FillTransparency = fillTransp; hl.OutlineTransparency = outlineTransp; hl.Enabled = true else hl.Enabled = false end
                     end
                 else
                     if ESP.Drawings[key] then ESP.Drawings[key].Enabled = false end
