@@ -370,9 +370,15 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         local function doInteract()
             InteractRemote:FireServer("Input", "Action", true)
         end
+        
+        local pcEnabled = isConditionEnabled("Near PC")
+        local podEnabled = isConditionEnabled("Near Freeze Pod")
+        local exitEnabled = isConditionEnabled("Near Exit Door")
 
-        if isConditionEnabled("Near PC") then
-            for _, obj in ipairs(CacheManager.Computers) do
+        if pcEnabled then
+            local computers = CacheManager.Computers
+            for i = 1, #computers do
+                local obj = computers[i]
                 if obj and obj.Parent then
                     local screen = obj:FindFirstChild("Screen")
                     local pos = (screen and screen.Position) or obj:GetPivot().Position
@@ -391,8 +397,10 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
             end
         end
         
-        if isConditionEnabled("Near Freeze Pod") then
-             for _, obj in ipairs(CacheManager.Pods) do
+        if podEnabled then
+             local pods = CacheManager.Pods
+             for i = 1, #pods do
+                 local obj = pods[i]
                  if obj and obj.Parent then
                      local pos = obj:GetPivot().Position
                      if (root.Position - pos).Magnitude <= 10 then
@@ -402,8 +410,10 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
              end
         end
 
-        if isConditionEnabled("Near Exit Door") then
-            for _, obj in ipairs(CacheManager.Exits) do
+        if exitEnabled then
+            local exits = CacheManager.Exits
+            for i = 1, #exits do
+                local obj = exits[i]
                 if obj and obj.Parent then
                     if (root.Position - obj.Position).Magnitude <= 10 then
                         if not interactedObjects[obj] then
