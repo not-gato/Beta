@@ -105,12 +105,12 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         Text = "Walkspeed BindButton",
         Default = false,
         Callback = newcclosure(function(v)
-            if v then
+            if v and BindModule then
                 BindModule:AddToggleBB("WalkSpeed", 
                     newcclosure(function() if Toggles.LockWalkSpeed then Toggles.LockWalkSpeed:SetValue(true) end end), 
                     newcclosure(function() if Toggles.LockWalkSpeed then Toggles.LockWalkSpeed:SetValue(false) end end)
                 )
-            else
+            elseif BindModule then
                 BindModule:DelBindB("WalkSpeed")
             end
         end)
