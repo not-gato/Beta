@@ -1,4 +1,4 @@
-return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
+return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,28 +9,28 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
 
     local ModuleMaid = MaidClass.new()
     RootMaid:GiveTask(ModuleMaid)
-    RootMaid:GiveTask(function() if BindModule then BindModule:Kill() end end)
+    RootMaid:GiveTask(newcclosure(function() if BindModule then BindModule:Kill() end end))
 
     local FeaturesGB = Tabs.Features:AddLeftGroupbox("Features", "zap")
     
     FeaturesGB:AddToggle("NoPCError", {Text = "No PC Error", Default = false})
     FeaturesGB:AddToggle("NoPCErrorBind", {
         Text = "No PC Error BindButton", Default = false,
-        Callback = function(v)
-            if v then BindModule:AddToggleBB("No PC Err", function() if Toggles.NoPCError then Toggles.NoPCError:SetValue(true) end end, function() if Toggles.NoPCError then Toggles.NoPCError:SetValue(false) end end)
+        Callback = newcclosure(function(v)
+            if v then BindModule:AddToggleBB("No PC Err", newcclosure(function() if Toggles.NoPCError then Toggles.NoPCError:SetValue(true) end end), newcclosure(function() if Toggles.NoPCError then Toggles.NoPCError:SetValue(false) end end))
             else BindModule:DelBindB("No PC Err") end
-        end
+        end)
     })
     FeaturesGB:AddLabel("Credits Of 'No PC Error' Feature Goes To: Yarhm | Created By Imperial! :D")
-    FeaturesGB:AddButton({Text = "Execute Yarhm", Func = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Joystickplays/psychic-octo-invention/main/source/yarhm/1.19/yarhm.lua", false))() end})
+    FeaturesGB:AddButton({Text = "Execute Yarhm", Func = newcclosure(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Joystickplays/psychic-octo-invention/main/source/yarhm/1.19/yarhm.lua", false))() end)})
 
     FeaturesGB:AddToggle("DoPCRemotely", {Text = "Bigger PC Range", Default = false})
     FeaturesGB:AddToggle("DoPCRemotelyBind", {
         Text = "Bigger PC Range BindButton", Default = false,
-        Callback = function(v)
-            if v then BindModule:AddToggleBB("Big Range", function() if Toggles.DoPCRemotely then Toggles.DoPCRemotely:SetValue(true) end end, function() if Toggles.DoPCRemotely then Toggles.DoPCRemotely:SetValue(false) end end)
+        Callback = newcclosure(function(v)
+            if v then BindModule:AddToggleBB("Big Range", newcclosure(function() if Toggles.DoPCRemotely then Toggles.DoPCRemotely:SetValue(true) end end), newcclosure(function() if Toggles.DoPCRemotely then Toggles.DoPCRemotely:SetValue(false) end end))
             else BindModule:DelBindB("Big Range") end
-        end
+        end)
     })
 
     local PCRangeMaid = MaidClass.new()
@@ -39,7 +39,7 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
     local activePC = nil
     local originalTransforms = {}
 
-    PCRangeMaid:GiveTask(RunService.Heartbeat:Connect(function()
+    PCRangeMaid:GiveTask(RunService.Heartbeat:Connect(newcclosure(function()
         if Toggles.DoPCRemotely and Toggles.DoPCRemotely.Value then
             local char = LocalPlayer.Character
             local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -90,20 +90,20 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
                 originalTransforms = {}; activePC = nil; timeNear = 0
             end
         end
-    end))
+    end)))
 
     local OldNameCall
-    OldNameCall = hookmetamethod(game, "__namecall", function(Self, ...)
+    OldNameCall = hookmetamethod(game, "__namecall", newcclosure(function(Self, ...)
         local Args = {...}
         if getnamecallmethod() == "FireServer" and Args[1] == "SetPlayerMinigameResult" and Toggles.NoPCError and Toggles.NoPCError.Value then Args[2] = true end
         return OldNameCall(Self, unpack(Args))
-    end)
+    end))
 
     local FlingGroupBox = Tabs.Features:AddLeftGroupbox("Fling", "wind")
     local flingTime = 5
     local flingForce = 50000
 
-    local function Fling(TargetPlayer, duration, flingForce)
+    local Fling = newcclosure(function(TargetPlayer, duration, flingForce)
         local startTime = tick()
         local Character = LocalPlayer.Character
         local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
@@ -205,16 +205,16 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
             until RootPart and getgenv().OldPos and (RootPart.Position - getgenv().OldPos.p).Magnitude < 25
             workspace.FallenPartsDestroyHeight = previousDestroyHeight
         end
-    end
+    end)
 
-    local function getPlayerList()
+    local getPlayerList = newcclosure(function()
         local list = {}
         for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(list, p.Name) end end
         return list
-    end
+    end)
 
     FlingGroupBox:AddDropdown("FlingPlayer", {Text = "Select Players", Values = getPlayerList(), Multi = true, Searchable = true})
-    FlingGroupBox:AddButton({Text="Fling Selected", Func=function()
+    FlingGroupBox:AddButton({Text="Fling Selected", Func=newcclosure(function()
         if not Options.FlingPlayer.Value then return end
         for selectedPlayer, isSelected in pairs(Options.FlingPlayer.Value) do
             if isSelected then
@@ -222,35 +222,35 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
                 if targetPlayer then Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5) end
             end
         end
-    end})
-    FlingGroupBox:AddButton({Text="Fling All", Func=function()
+    end)})
+    FlingGroupBox:AddButton({Text="Fling All", Func=newcclosure(function()
         for _, targetPlayer in ipairs(Players:GetPlayers()) do
             if targetPlayer ~= LocalPlayer and targetPlayer.Character then Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5) end
         end
-    end})
-    FlingGroupBox:AddButton({Text="Fling Beast", Func=function()
+    end)})
+    FlingGroupBox:AddButton({Text="Fling Beast", Func=newcclosure(function()
         for _, targetPlayer in ipairs(Players:GetPlayers()) do
             if targetPlayer ~= LocalPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Hammer") then
                 Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5); break
             end
         end
-    end})
+    end)})
     FlingGroupBox:AddDivider()
-    FlingGroupBox:AddToggle("FlingBeastBind", {Text = "Fling Beast Bind Button", Default = false, Callback = function(v)
-        if v then BindModule:AddButton("Fling Beast", function()
+    FlingGroupBox:AddToggle("FlingBeastBind", {Text = "Fling Beast Bind Button", Default = false, Callback = newcclosure(function(v)
+        if v then BindModule:AddButton("Fling Beast", newcclosure(function()
             for _, targetPlayer in ipairs(Players:GetPlayers()) do
                 if targetPlayer ~= LocalPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Hammer") then
                     Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5); break
                 end
             end
-        end) else BindModule:DelBindB("Fling Beast") end
-    end})
+        end)) else BindModule:DelBindB("Fling Beast") end
+    end)})
     FlingGroupBox:AddDivider()
-    FlingGroupBox:AddSlider("FlingTime", {Text="Fling Time", Default=5, Min=1, Max=25, Rounding=1, Callback=function(v) flingTime = v end})
-    FlingGroupBox:AddSlider("FlingForce", {Text="Fling Force", Default=50000, Min=1, Max=9999999, Rounding=0, Callback=function(v) flingForce = v end})
+    FlingGroupBox:AddSlider("FlingTime", {Text="Fling Time", Default=5, Min=1, Max=25, Rounding=1, Callback=newcclosure(function(v) flingTime = v end)})
+    FlingGroupBox:AddSlider("FlingForce", {Text="Fling Force", Default=50000, Min=1, Max=9999999, Rounding=0, Callback=newcclosure(function(v) flingForce = v end)})
     
-    ModuleMaid:GiveTask(Players.PlayerAdded:Connect(function() if Options.FlingPlayer then Options.FlingPlayer:SetValues(getPlayerList()) end end))
-    ModuleMaid:GiveTask(Players.PlayerRemoving:Connect(function() if Options.FlingPlayer then Options.FlingPlayer:SetValues(getPlayerList()) end end))
+    ModuleMaid:GiveTask(Players.PlayerAdded:Connect(newcclosure(function() if Options.FlingPlayer then Options.FlingPlayer:SetValues(getPlayerList()) end end)))
+    ModuleMaid:GiveTask(Players.PlayerRemoving:Connect(newcclosure(function() if Options.FlingPlayer then Options.FlingPlayer:SetValues(getPlayerList()) end end)))
 
     local FunMiscGB = Tabs.Features:AddRightGroupbox("Fun & Misc", "confetti_ball")
     FunMiscGB:AddToggle("RGBAsync", {Text = "RGB ASync", Default = false})
@@ -262,7 +262,7 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
     FunMiscGB:AddSlider("RGBLightSpeed", {Text = "RGB Light Speed", Default = 5, Min = 1, Max = 10, Rounding = 0})
     FunMiscGB:AddDropdown("RGBMethod", {Text = "RGB Method", Values = {"HSV", "RGB"}, Default = 1})
     FunMiscGB:AddDivider()
-    FunMiscGB:AddButton("Reset", function()
+    FunMiscGB:AddButton("Reset", newcclosure(function()
         if Toggles.RGBAsync then Toggles.RGBAsync:SetValue(false) end
         if Toggles.RGBHammer then Toggles.RGBHammer:SetValue(false) end
         if Toggles.RGBLight then Toggles.RGBLight:SetValue(false) end
@@ -270,17 +270,17 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
         if Options.RGBHammerSpeed then Options.RGBHammerSpeed:SetValue(5) end
         if Options.RGBLightSpeed then Options.RGBLightSpeed:SetValue(5) end
         if Options.RGBMethod then Options.RGBMethod:SetValue("HSV") end
-    end)
-    FunMiscGB:AddButton("Rejoin", function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
+    end))
+    FunMiscGB:AddButton("Rejoin", newcclosure(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end))
 
     local RGB = {HammerHighlight = nil, LastHammerUpdate = 0, LastLightUpdate = 0}
-    local function GetRGBColor(method, speed)
+    local GetRGBColor = newcclosure(function(method, speed)
         if (method or "HSV") == "HSV" then return Color3.fromHSV((tick() * (speed or 5) / 10) % 1, 1, 1)
         else local t = tick() * (speed or 5); return Color3.fromRGB(127+127*math.sin(t), 127+127*math.sin(t+2), 127+127*math.sin(t+4)) end
-    end
+    end)
 
     if Scheduler then
-        ModuleMaid:GiveTask(Scheduler.Interval(0.05, function()
+        ModuleMaid:GiveTask(Scheduler.Interval(0.05, newcclosure(function()
             local char = LocalPlayer.Character
             if not char then return end
             if Toggles.RGBHammer and Toggles.RGBHammer.Value then
@@ -306,6 +306,6 @@ return function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
                     if h then local l = h:FindFirstChild("PointLight"); if l then l:Destroy() end end
                 end
             end
-        end))
+        end)))
     end
-end
+end)
