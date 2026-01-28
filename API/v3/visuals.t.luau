@@ -55,8 +55,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
 
     local function GetCachedDrawing()
         if #ESP_Cache.Drawings > 0 then
-            local billboard = table.remove(ESP_Cache.Drawings)
-            return billboard
+            return table.remove(ESP_Cache.Drawings)
         end
         local billboard = Instance.new("BillboardGui")
         billboard.Name = "unxcontainer"
@@ -84,9 +83,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
 
     local function GetCachedTracer()
         if #ESP_Cache.Tracers > 0 then
-            local t = table.remove(ESP_Cache.Tracers)
-            t.Visible = false
-            return t
+            return table.remove(ESP_Cache.Tracers)
         end
         local l = Drawing.new("Line")
         l.Visible = false; l.Thickness = 2; l.Transparency = 1
@@ -95,9 +92,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
 
     local function GetCachedHighlight()
         if #ESP_Cache.Highlights > 0 then
-            local h = table.remove(ESP_Cache.Highlights)
-            h.Enabled = false
-            return h
+            return table.remove(ESP_Cache.Highlights)
         end
         local h = Instance.new("Highlight")
         h.FillTransparency = 1; h.OutlineTransparency = 0; h.Enabled = false
@@ -123,6 +118,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         if h then
             h.Enabled = false
             h.Parent = nil
+            h.Adornee = nil
             table.insert(ESP_Cache.Highlights, h)
             ESP.Highlights[key] = nil
         end
