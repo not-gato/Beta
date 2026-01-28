@@ -40,7 +40,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
     
     local activePC = nil
     local originalTransforms = {}
-    local isResized = false
+    local timeNear = 0
 
     local function RestoreOriginals()
         for part, data in pairs(originalTransforms) do
@@ -51,10 +51,10 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
             end
         end
         originalTransforms = {}
-        isResized = false
+        timeNear = 0
     end
 
-    PCRangeMaid:GiveTask(RunService.Heartbeat:Connect(newcclosure(function()
+    PCRangeMaid:GiveTask(RunService.Heartbeat:Connect(newcclosure(function(dt)
         if Toggles.DoPCRemotely and Toggles.DoPCRemotely.Value then
             local char = LocalPlayer.Character
             local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -68,53 +68,49 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
                     if math.abs(c.R*255 - 40) < 5 and math.abs(c.G*255 - 127) < 5 and math.abs(c.B*255 - 71) < 5 then isDone = true end
                 end
 
-                if isDone or (activePC:GetPivot().Position - root.Position).Magnitude > 20 then
+                if isDone then
                     RestoreOriginals()
                     activePC = nil
                 else
-                    if not isResized then
-                        for i = 1, 3 do
-                            local trig = activePC:FindFirstChild("ComputerTrigger"..i)
-                            if trig and trig:IsA("BasePart") then
+                    for i = 1, 3 do
+                        local trig = activePC:FindFirstChild("ComputerTrigger"..i)
+                        if trig and trig:IsA("BasePart") then
+                            if not originalTransforms[trig] then
                                 originalTransforms[trig] = {CFrame = trig.CFrame, Size = trig.Size, CanCollide = trig.CanCollide}
-                                trig.Size = Vector3.new(9e4, 9e4, 9e4)
-                                trig.CanCollide = false
-                                trig.CFrame = root.CFrame
                             end
-                        end
-                        isResized = true
-                    else
-                        for i = 1, 3 do
-                            local trig = activePC:FindFirstChild("ComputerTrigger"..i)
-                            if trig and trig:IsA("BasePart") then
-                                trig.CFrame = root.CFrame
-                            end
+                            trig.Size = Vector3.new(999, 999, 999)
+                            trig.CanCollide = false
+                            trig.CFrame = root.CFrame
                         end
                     end
                 end
             else
-                if (RunService.Stepped:Wait() and tick() % 0.2 < 0.02) then
-                    local computers = CacheManager.Computers
-                    for i = 1, #computers do
-                        local pc = computers[i]
-                        local screen = pc:FindFirstChild("Screen")
-                        local isDone = false
-                        if screen and screen:IsA("BasePart") then
-                            local c = screen.Color
-                            if math.abs(c.R*255 - 40) < 5 and math.abs(c.G*255 - 127) < 5 and math.abs(c.B*255 - 71) < 5 then isDone = true end
-                        end
-                        if not isDone then
-                            if (pc:GetPivot().Position - root.Position).Magnitude <= 15 then
+                local found = false
+                local computers = CacheManager.Computers
+                for i = 1, #computers do
+                    local pc = computers[i]
+                    local screen = pc:FindFirstChild("Screen")
+                    local isDone = false
+                    if screen and screen:IsA("BasePart") then
+                        local c = screen.Color
+                        if math.abs(c.R*255 - 40) < 5 and math.abs(c.G*255 - 127) < 5 and math.abs(c.B*255 - 71) < 5 then isDone = true end
+                    end
+                    if not isDone then
+                        if (pc:GetPivot().Position - root.Position).Magnitude <= 6 then
+                            timeNear = timeNear + dt
+                            found = true
+                            if timeNear >= 1 then
                                 activePC = pc
                                 Library:Notify("Bigger Range Triggered!")
-                                break
                             end
+                            break
                         end
                     end
                 end
+                if not found then timeNear = 0 end
             end
         else
-            if activePC or isResized then
+            if activePC or next(originalTransforms) then
                 RestoreOriginals()
                 activePC = nil
             end
