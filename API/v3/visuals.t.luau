@@ -51,24 +51,15 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
     VisualsGameCamGB:AddToggle("NoFog", {Text = "No Fog", Default = false})
 
     local ESP = {Drawings = {}, Tracers = {}, Highlights = {}}
-    
-    local CreateLine = newcclosure(function()
-        local l = Drawing.new("Line")
-        l.Visible = false; l.Thickness = 2; l.Transparency = 1
-        return l
-    end)
+    local ESP_Cache = {Drawings = {}, Tracers = {}, Highlights = {}}
 
-    local CreateHighlight = newcclosure(function()
-        local h = Instance.new("Highlight")
-        h.FillTransparency = 1; h.OutlineTransparency = 0; h.Enabled = false
-        return h
-    end)
-
-    local CreateBillboard = newcclosure(function(target)
-        if not target then return nil end
+    local function GetCachedDrawing()
+        if #ESP_Cache.Drawings > 0 then
+            local billboard = table.remove(ESP_Cache.Drawings)
+            return billboard
+        end
         local billboard = Instance.new("BillboardGui")
         billboard.Name = "unxcontainer"
-        billboard.Adornee = target
         billboard.Size = UDim2.new(0, 200, 0, 50)
         billboard.StudsOffset = Vector3.new(0, 2, 0)
         billboard.AlwaysOnTop = true
@@ -88,22 +79,53 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         uiStroke.Thickness = 1.2
         uiStroke.Color = Color3.fromRGB(200, 200, 200)
         uiStroke.Transparency = 0
-        
-        if target:IsA("BasePart") or target:IsA("Model") then billboard.Parent = target else billboard.Parent = game.CoreGui end
         return billboard
-    end)
+    end
 
-    local GetRainbow = newcclosure(function(speed) return Color3.fromHSV((tick() * ((speed or 1) / 10)) % 1, 1, 1) end)
-    local GetDarkerColor = newcclosure(function(c) return Color3.new(math.clamp(c.R * 0.784, 0, 1), math.clamp(c.G * 0.784, 0, 1), math.clamp(c.B * 0.784, 0, 1)) end)
+    local function GetCachedTracer()
+        if #ESP_Cache.Tracers > 0 then
+            local t = table.remove(ESP_Cache.Tracers)
+            t.Visible = false
+            return t
+        end
+        local l = Drawing.new("Line")
+        l.Visible = false; l.Thickness = 2; l.Transparency = 1
+        return l
+    end
+
+    local function GetCachedHighlight()
+        if #ESP_Cache.Highlights > 0 then
+            local h = table.remove(ESP_Cache.Highlights)
+            h.Enabled = false
+            return h
+        end
+        local h = Instance.new("Highlight")
+        h.FillTransparency = 1; h.OutlineTransparency = 0; h.Enabled = false
+        return h
+    end
 
     local RemoveESP = newcclosure(function(key)
         local d = ESP.Drawings[key]
-        if d and d:IsA("Instance") then d:Destroy() end
+        if d then
+            d.Enabled = false
+            d.Parent = nil
+            d.Adornee = nil
+            table.insert(ESP_Cache.Drawings, d)
+            ESP.Drawings[key] = nil
+        end
         local t = ESP.Tracers[key]
-        if t and t.Remove then t:Remove() end
+        if t then
+            t.Visible = false
+            table.insert(ESP_Cache.Tracers, t)
+            ESP.Tracers[key] = nil
+        end
         local h = ESP.Highlights[key]
-        if h and h.Destroy then h:Destroy() end
-        ESP.Drawings[key], ESP.Tracers[key], ESP.Highlights[key] = nil, nil, nil
+        if h then
+            h.Enabled = false
+            h.Parent = nil
+            table.insert(ESP_Cache.Highlights, h)
+            ESP.Highlights[key] = nil
+        end
     end)
 
     local ClearAllESP = newcclosure(function()
@@ -111,39 +133,51 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         for key in pairs(ESP.Tracers) do RemoveESP(key) end
         for key in pairs(ESP.Highlights) do RemoveESP(key) end
     end)
-    VisualsMaid:GiveTask(ClearAllESP)
+    
+    VisualsMaid:GiveTask(newcclosure(function()
+        ClearAllESP()
+        for _, v in ipairs(ESP_Cache.Drawings) do v:Destroy() end
+        for _, v in ipairs(ESP_Cache.Tracers) do v:Remove() end
+        for _, v in ipairs(ESP_Cache.Highlights) do v:Destroy() end
+        table.clear(ESP_Cache.Drawings)
+        table.clear(ESP_Cache.Tracers)
+        table.clear(ESP_Cache.Highlights)
+    end))
 
     ConfigTab:AddButton("Re-load ESPs", function() ClearAllESP() CacheManager:Update() end)
 
-    local MonitorPlayer = newcclosure(function(player)
-        if player == LocalPlayer then return end
-        VisualsMaid:GiveTask(player.CharacterAdded:Connect(newcclosure(function(char)
-            VisualsMaid:GiveTask(char.AncestryChanged:Connect(newcclosure(function(_, parent)
-                if not parent then RemoveESP("Beast_" .. player.UserId); RemoveESP("Surv_" .. player.UserId) end
-            end)))
-        end)))
-        VisualsMaid:GiveTask(player.CharacterRemoving:Connect(newcclosure(function() RemoveESP("Beast_" .. player.UserId); RemoveESP("Surv_" .. player.UserId) end)))
-    end)
-
-    for _, p in ipairs(Players:GetPlayers()) do MonitorPlayer(p) end
-    VisualsMaid:GiveTask(Players.PlayerAdded:Connect(MonitorPlayer))
-    VisualsMaid:GiveTask(Players.PlayerRemoving:Connect(newcclosure(function(player) RemoveESP("Beast_" .. player.UserId); RemoveESP("Surv_" .. player.UserId) end)))
+    local GetRainbow = newcclosure(function(speed) return Color3.fromHSV((tick() * ((speed or 1) / 10)) % 1, 1, 1) end)
+    local GetDarkerColor = newcclosure(function(c) return Color3.new(math.clamp(c.R * 0.784, 0, 1), math.clamp(c.G * 0.784, 0, 1), math.clamp(c.B * 0.784, 0, 1)) end)
 
     local UpdateESP = newcclosure(function()
         local activeKeys = {}
         local cam = workspace.CurrentCamera
         if not cam then return end
+        
         local camPos = cam.CFrame.Position
         local viewportSize = cam.ViewportSize
         local centerScreen = Vector2.new(viewportSize.X/2, viewportSize.Y)
-        local showDist = Toggles.ShowDistance and Toggles.ShowDistance.Value
+        
+        local showDist = Toggles.ShowDistance.Value
+        local espTextSize = Options.ESPTextSize.Value
+        local tracerThickness = Options.TracerThickness.Value
+        local fillTransp = Options.OutlineFillTransparency.Value / 100
+        local outlineTransp = Options.OutlineTransparency.Value / 100
+        local rainbowSpeed = Options.RainbowSpeed.Value
+        local rainbowColor = GetRainbow(rainbowSpeed)
 
-        local espTextSize = Options.ESPTextSize and Options.ESPTextSize.Value or 16
-        local tracerThickness = Options.TracerThickness and Options.TracerThickness.Value or 2
-        local fillTransp = (Options.OutlineFillTransparency and Options.OutlineFillTransparency.Value or 100) / 100
-        local outlineTransp = (Options.OutlineTransparency and Options.OutlineTransparency.Value or 0) / 100
+        local compEnabled = Toggles.ComputerESP.Value
+        local podEnabled = Toggles.FreezePodESP.Value
+        local beastEnabled = Toggles.BeastESP.Value
+        local survEnabled = Toggles.SurvivorESP.Value
+        
+        local compColor = Options.ComputerESPColor.Value
+        local compDoneColor = Options.ComputerESPCompletedColor.Value
+        local podColor = Options.FreezePodESPColor.Value
+        local beastColor = Options.BeastESPColor.Value
+        local survColor = Options.SurvivorESPColor.Value
 
-        if Toggles.ComputerESP and Toggles.ComputerESP.Value then
+        if compEnabled then
             local computers = CacheManager.Computers
             for i = 1, #computers do
                 local obj = computers[i]
@@ -158,32 +192,37 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
 
                     local key = "Comp_" .. obj:GetDebugId()
                     activeKeys[key] = true
-                    local targetPart = screen or obj.PrimaryPart
-                    local billboard = ESP.Drawings[key] 
-                    if not billboard or billboard.Parent ~= targetPart then
-                        if billboard then billboard:Destroy() end
-                        if targetPart then billboard = CreateBillboard(targetPart); ESP.Drawings[key] = billboard end
-                    end
-                    local tracer = ESP.Tracers[key] or CreateLine(); ESP.Tracers[key] = tracer
-                    local hl = ESP.Highlights[key] or CreateHighlight(); ESP.Highlights[key] = hl
                     
-                    local color = (Toggles.RainbowComputerESP and Toggles.RainbowComputerESP.Value and GetRainbow(Options.RainbowSpeed.Value)) or
+                    local billboard = ESP.Drawings[key]
+                    if not billboard then
+                        billboard = GetCachedDrawing()
+                        ESP.Drawings[key] = billboard
+                    end
+
+                    local targetPart = screen or obj.PrimaryPart
+                    if billboard.Adornee ~= targetPart then
+                        billboard.Adornee = targetPart
+                        billboard.Parent = targetPart or game.CoreGui
+                    end
+
+                    local tracer = ESP.Tracers[key] or GetCachedTracer(); ESP.Tracers[key] = tracer
+                    local hl = ESP.Highlights[key] or GetCachedHighlight(); ESP.Highlights[key] = hl
+                    
+                    local color = (Toggles.RainbowComputerESP.Value and rainbowColor) or
                                   (isError and Color3.fromRGB(196, 40, 28)) or
-                                  (isCompleted and (Options.ComputerESPCompletedColor and Options.ComputerESPCompletedColor.Value or Color3.fromRGB(40, 127, 71))) or
-                                  (Options.ComputerESPColor and Options.ComputerESPColor.Value or Color3.fromRGB(0, 255, 0))
+                                  (isCompleted and compDoneColor) or compColor
 
                     local pos = obj:GetPivot().Position
-                    if billboard then
-                        local txt = billboard:FindFirstChild("TextLabel")
-                        if txt then
-                            txt.TextSize = espTextSize
-                            txt.Text = "Computer #"..i..(showDist and " ["..math.floor((camPos-pos).Magnitude).."]" or "")..(isError and " (ERROR)" or (isCompleted and " (COMPLETED)" or ""))
-                            txt.TextColor3 = color
-                            local stroke = txt:FindFirstChild("UIStroke")
-                            if stroke then stroke.Color = GetDarkerColor(color) end
-                        end
-                        billboard.Enabled = true
+                    
+                    local txt = billboard:FindFirstChild("TextLabel")
+                    if txt then
+                        txt.TextSize = espTextSize
+                        txt.Text = "Computer #"..i..(showDist and " ["..math.floor((camPos-pos).Magnitude).."]" or "")..(isError and " (ERROR)" or (isCompleted and " (COMPLETED)" or ""))
+                        txt.TextColor3 = color
+                        local stroke = txt:FindFirstChild("UIStroke")
+                        if stroke then stroke.Color = GetDarkerColor(color) end
                     end
+                    billboard.Enabled = true
 
                     if Toggles.ComputerTracers.Value then
                         local screenPos, onScreen = cam:WorldToViewportPoint(pos + Vector3.new(0, 5, 0))
@@ -201,56 +240,50 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
                     else hl.Enabled = false end
                 end
             end
-        else
-            local computers = CacheManager.Computers
-            for i = 1, #computers do
-                 local key = "Comp_" .. computers[i]:GetDebugId()
-                 if ESP.Drawings[key] then ESP.Drawings[key].Enabled = false end
-                 if ESP.Tracers[key] then ESP.Tracers[key].Visible = false end
-                 if ESP.Highlights[key] then ESP.Highlights[key].Enabled = false end
-            end
         end
 
-        if Toggles.FreezePodESP and Toggles.FreezePodESP.Value then
+        if podEnabled then
             local pods = CacheManager.Pods
             for i = 1, #pods do
                 local obj = pods[i]
                 if obj and obj.Parent then
                     local key = "Pod_" .. obj:GetDebugId(); activeKeys[key] = true
-                    local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                    
                     local billboard = ESP.Drawings[key]
-                    if not billboard or billboard.Parent ~= targetPart then
-                        if billboard then billboard:Destroy() end
-                        if targetPart then billboard = CreateBillboard(targetPart); ESP.Drawings[key] = billboard end
+                    if not billboard then
+                        billboard = GetCachedDrawing()
+                        ESP.Drawings[key] = billboard
                     end
-                    local tracer = ESP.Tracers[key] or CreateLine(); ESP.Tracers[key] = tracer
-                    local hl = ESP.Highlights[key] or CreateHighlight(); ESP.Highlights[key] = hl
-                    local color = (Toggles.RainbowFreezePodESP and Toggles.RainbowFreezePodESP.Value and GetRainbow(Options.RainbowSpeed.Value)) or (Options.FreezePodESPColor and Options.FreezePodESPColor.Value or Color3.fromRGB(0,255,255))
+
+                    local targetPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                    if billboard.Adornee ~= targetPart then
+                        billboard.Adornee = targetPart
+                        billboard.Parent = targetPart or game.CoreGui
+                    end
+
+                    local tracer = ESP.Tracers[key] or GetCachedTracer(); ESP.Tracers[key] = tracer
+                    local hl = ESP.Highlights[key] or GetCachedHighlight(); ESP.Highlights[key] = hl
+                    
+                    local color = (Toggles.RainbowFreezePodESP.Value and rainbowColor) or podColor
                     local pos = obj:GetPivot().Position
-                    if billboard then
-                        local txt = billboard:FindFirstChild("TextLabel")
-                        if txt then
-                            txt.TextSize = espTextSize
-                            txt.Text = "Freeze Pod #"..i..(showDist and " ["..math.floor((camPos-pos).Magnitude).."]" or "")
-                            txt.TextColor3 = color
-                            if txt:FindFirstChild("UIStroke") then txt:FindFirstChild("UIStroke").Color = GetDarkerColor(color) end
-                        end
-                        billboard.Enabled = true
+                    
+                    local txt = billboard:FindFirstChild("TextLabel")
+                    if txt then
+                        txt.TextSize = espTextSize
+                        txt.Text = "Freeze Pod #"..i..(showDist and " ["..math.floor((camPos-pos).Magnitude).."]" or "")
+                        txt.TextColor3 = color
+                        local stroke = txt:FindFirstChild("UIStroke")
+                        if stroke then stroke.Color = GetDarkerColor(color) end
                     end
+                    billboard.Enabled = true
+
                     if Toggles.FreezePodTracers.Value then
                         local screenPos, onScreen = cam:WorldToViewportPoint(pos + Vector3.new(0, 5, 0))
                         if onScreen then tracer.Thickness = tracerThickness; tracer.From = centerScreen; tracer.To = Vector2.new(screenPos.X, screenPos.Y); tracer.Color = color; tracer.Visible = true else tracer.Visible = false end
                     else tracer.Visible = false end
+                    
                     if Toggles.OutlineFreezePod.Value then hl.Parent = obj; hl.FillColor = color; hl.OutlineColor = color; hl.FillTransparency = fillTransp; hl.OutlineTransparency = outlineTransp; hl.Enabled = true else hl.Enabled = false end
                 end
-            end
-        else
-            local pods = CacheManager.Pods
-            for i = 1, #pods do
-                 local key = "Pod_" .. pods[i]:GetDebugId()
-                 if ESP.Drawings[key] then ESP.Drawings[key].Enabled = false end
-                 if ESP.Tracers[key] then ESP.Tracers[key].Visible = false end
-                 if ESP.Highlights[key] then ESP.Highlights[key].Enabled = false end
             end
         end
 
@@ -259,35 +292,48 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
             local player = players[i]
             if player ~= LocalPlayer and player.Character then
                 local isBeast = player.Character:FindFirstChild("Hammer") ~= nil
-                local key = (isBeast and "Beast_" or "Surv_") .. player.UserId
-                local shouldShow = (isBeast and Toggles.BeastESP and Toggles.BeastESP.Value) or (not isBeast and Toggles.SurvivorESP and Toggles.SurvivorESP.Value)
+                
+                local beastKey = "Beast_" .. player.UserId
+                local survKey = "Surv_" .. player.UserId
+                local currentKey = isBeast and beastKey or survKey
+                
+                if isBeast and ESP.Drawings[survKey] then RemoveESP(survKey) end
+                if not isBeast and ESP.Drawings[beastKey] then RemoveESP(beastKey) end
+                
+                local shouldShow = (isBeast and beastEnabled) or (not isBeast and survEnabled)
                 
                 if shouldShow then
                     local root = player.Character:FindFirstChild("HumanoidRootPart")
                     local head = player.Character:FindFirstChild("Head")
                     if root and head then
-                        activeKeys[key] = true
-                        local billboard = ESP.Drawings[key]
-                        if not billboard or billboard.Parent ~= head then
-                            if billboard then billboard:Destroy() end
-                            billboard = CreateBillboard(head); ESP.Drawings[key] = billboard
-                        end
-                        local tracer = ESP.Tracers[key] or CreateLine(); ESP.Tracers[key] = tracer
-                        local hl = ESP.Highlights[key] or CreateHighlight(); ESP.Highlights[key] = hl
+                        activeKeys[currentKey] = true
                         
-                        local useRainbow = (isBeast and Toggles.RainbowBeastESP and Toggles.RainbowBeastESP.Value) or (not isBeast and Toggles.RainbowSurvivorESP and Toggles.RainbowSurvivorESP.Value)
-                        local color = useRainbow and GetRainbow(Options.RainbowSpeed.Value) or (isBeast and (Options.BeastESPColor and Options.BeastESPColor.Value or Color3.fromRGB(255,0,0)) or (Options.SurvivorESPColor and Options.SurvivorESPColor.Value or Color3.fromRGB(255,255,255)))
-                        
-                        if billboard then
-                            local txt = billboard:FindFirstChild("TextLabel")
-                            if txt then
-                                txt.TextSize = espTextSize
-                                txt.Text = player.DisplayName..(isBeast and " [BEAST]" or " [SURV]")..(showDist and " ["..math.floor((camPos-root.Position).Magnitude).."]" or "")
-                                txt.TextColor3 = color
-                                if txt:FindFirstChild("UIStroke") then txt:FindFirstChild("UIStroke").Color = GetDarkerColor(color) end
-                            end
-                            billboard.Enabled = true
+                        local billboard = ESP.Drawings[currentKey]
+                        if not billboard then
+                            billboard = GetCachedDrawing()
+                            ESP.Drawings[currentKey] = billboard
                         end
+                        
+                        if billboard.Adornee ~= head then
+                            billboard.Adornee = head
+                            billboard.Parent = head
+                        end
+                        
+                        local tracer = ESP.Tracers[currentKey] or GetCachedTracer(); ESP.Tracers[currentKey] = tracer
+                        local hl = ESP.Highlights[currentKey] or GetCachedHighlight(); ESP.Highlights[currentKey] = hl
+                        
+                        local useRainbow = (isBeast and Toggles.RainbowBeastESP.Value) or (not isBeast and Toggles.RainbowSurvivorESP.Value)
+                        local color = useRainbow and rainbowColor or (isBeast and beastColor or survColor)
+                        
+                        local txt = billboard:FindFirstChild("TextLabel")
+                        if txt then
+                            txt.TextSize = espTextSize
+                            txt.Text = player.DisplayName..(isBeast and " [BEAST]" or " [SURV]")..(showDist and " ["..math.floor((camPos-root.Position).Magnitude).."]" or "")
+                            txt.TextColor3 = color
+                            local stroke = txt:FindFirstChild("UIStroke")
+                            if stroke then stroke.Color = GetDarkerColor(color) end
+                        end
+                        billboard.Enabled = true
 
                         if (isBeast and Toggles.BeastTracers.Value) or (not isBeast and Toggles.SurvivorTracers.Value) then
                             local screenPos, onScreen = cam:WorldToViewportPoint(root.Position + Vector3.new(0,3.5,0))
@@ -296,24 +342,12 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
 
                         if (isBeast and Toggles.OutlineBeast.Value) or (not isBeast and Toggles.OutlineSurvivors.Value) then hl.Parent = player.Character; hl.FillColor = color; hl.OutlineColor = color; hl.FillTransparency = fillTransp; hl.OutlineTransparency = outlineTransp; hl.Enabled = true else hl.Enabled = false end
                     end
-                else
-                    if ESP.Drawings[key] then ESP.Drawings[key].Enabled = false end
-                    if ESP.Tracers[key] then ESP.Tracers[key].Visible = false end
-                    if ESP.Highlights[key] then ESP.Highlights[key].Enabled = false end
                 end
-            else
-                local k1, k2 = "Beast_"..player.UserId, "Surv_"..player.UserId
-                if ESP.Drawings[k1] then ESP.Drawings[k1].Enabled = false end
-                if ESP.Tracers[k1] then ESP.Tracers[k1].Visible = false end
-                if ESP.Highlights[k1] then ESP.Highlights[k1].Enabled = false end
-                if ESP.Drawings[k2] then ESP.Drawings[k2].Enabled = false end
-                if ESP.Tracers[k2] then ESP.Tracers[k2].Visible = false end
-                if ESP.Highlights[k2] then ESP.Highlights[k2].Enabled = false end
             end
         end
 
         for key in pairs(ESP.Drawings) do
-            if not activeKeys[key] and not string.find(key, "Beast_") and not string.find(key, "Surv_") then RemoveESP(key) end
+            if not activeKeys[key] then RemoveESP(key) end
         end
     end)
     
