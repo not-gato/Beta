@@ -1,4 +1,4 @@
-return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
+return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler, Translator)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local TweenService = game:GetService("TweenService")
@@ -7,6 +7,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
     local Camera = workspace.CurrentCamera
     local Options = Library.Options
     local Toggles = Library.Toggles
+    local T = Translator.T
     local BindModule = loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Bind.lua"))()
     
     local ModuleMaid = MaidClass.new()
@@ -94,15 +95,15 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         end))
     end)
 
-    local MainCharacterGB = Tabs.Main:AddLeftGroupbox("Character", "user")
-    local MainFlyGB = Tabs.Main:AddRightGroupbox("Fly", "plane")
-    local MainOtherGB = Tabs.Main:AddRightGroupbox("Other", "package")
+    local MainCharacterGB = Tabs.Main:AddLeftGroupbox(T("Character"), "user")
+    local MainFlyGB = Tabs.Main:AddRightGroupbox(T("Fly"), "plane")
+    local MainOtherGB = Tabs.Main:AddRightGroupbox(T("Other"), "package")
 
-    MainCharacterGB:AddToggle("LockWalkSpeed", {Text = "Lock Walkspeed Value", Default = true})
-    MainCharacterGB:AddSlider("WalkSpeed", {Text = "Walk Speed", Default = 16, Min = 16, Max = 100, Rounding = 0})
+    MainCharacterGB:AddToggle("LockWalkSpeed", {Text = T("Lock Walkspeed Value"), Default = true})
+    MainCharacterGB:AddSlider("WalkSpeed", {Text = T("Walk Speed"), Default = 16, Min = 16, Max = 100, Rounding = 0})
 
     MainCharacterGB:AddToggle("WalkspeedBindToggle", {
-        Text = "Walkspeed BindButton",
+        Text = T("Walkspeed BindButton"),
         Default = false,
         Callback = newcclosure(function(v)
             if v and BindModule then
@@ -116,43 +117,43 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         end)
     })
 
-    MainCharacterGB:AddSlider("JumpPower", {Text = "Jump Power", Default = 50, Min = 50, Max = 250, Rounding = 0})
-    MainCharacterGB:AddSlider("MaxZoom", {Text = "Max Zoom", Default = 128, Min = 0, Max = 800, Rounding = 0})
-    MainCharacterGB:AddToggle("NoVelocity", {Text = "No Velocity", Default = false})
+    MainCharacterGB:AddSlider("JumpPower", {Text = T("Jump Power"), Default = 50, Min = 50, Max = 250, Rounding = 0})
+    MainCharacterGB:AddSlider("MaxZoom", {Text = T("Max Zoom"), Default = 128, Min = 0, Max = 800, Rounding = 0})
+    MainCharacterGB:AddToggle("NoVelocity", {Text = T("No Velocity"), Default = false})
     MainCharacterGB:AddDivider()
 
     local AutoInteractMaid = MaidClass.new()
     ModuleMaid:GiveTask(AutoInteractMaid)
-    MainCharacterGB:AddToggle("AutoInteract", {Text = "Auto Interact", Default = false})
+    MainCharacterGB:AddToggle("AutoInteract", {Text = T("Auto Interact"), Default = false})
     MainCharacterGB:AddDropdown("AutoInteractConditions", {
-        Text = "Auto Interact Conditions",
+        Text = T("Auto Interact Conditions"),
         Values = {"Near PC", "Near Exit Door", "Near Freeze Pod"},
         Default = {"Near PC", "Near Exit Door", "Near Freeze Pod"},
         Multi = true, 
     })
     MainCharacterGB:AddDivider()
 
-    MainCharacterGB:AddToggle("NoClip", {Text = "No-Clip", Default = false})
+    MainCharacterGB:AddToggle("NoClip", {Text = T("No-Clip"), Default = false})
     Toggles.NoClip:AddKeyPicker("NoclipKeybind", {Default="N", Mode="Toggle", Text="Noclip", SyncToggleState=true})
 
-    MainCharacterGB:AddToggle("InfiniteJump", {Text = "Infinite Jump", Default = false})
-    MainCharacterGB:AddToggle("SpeedGlitch", {Text = "Speed Glitch", Default = false})
-    MainCharacterGB:AddSlider("SpeedGlitchForce", {Text = "Speed Glitch Force", Default = 100, Min = 1, Max = 250, Rounding = 0})
-    MainCharacterGB:AddDropdown("SpeedGlitchMethod", {Text = "Speed Glitch Method", Values = {"Speed", "Body Velocity"}, Default = 2})
+    MainCharacterGB:AddToggle("InfiniteJump", {Text = T("Infinite Jump"), Default = false})
+    MainCharacterGB:AddToggle("SpeedGlitch", {Text = T("Speed Glitch"), Default = false})
+    MainCharacterGB:AddSlider("SpeedGlitchForce", {Text = T("Speed Glitch Force"), Default = 100, Min = 1, Max = 250, Rounding = 0})
+    MainCharacterGB:AddDropdown("SpeedGlitchMethod", {Text = T("Speed Glitch Method"), Values = {"Speed", "Body Velocity"}, Default = 2})
 
     MainCharacterGB:AddDivider()
-    MainCharacterGB:AddToggle("BunnyHop", {Text = "Bunny Hop", Default = false})
-    MainCharacterGB:AddSlider("BunnyHopDelay", {Text = "Bunny Hop Delay (s)", Default = 0.2, Min = 0, Max = 3, Rounding = 2})
+    MainCharacterGB:AddToggle("BunnyHop", {Text = T("Bunny Hop"), Default = false})
+    MainCharacterGB:AddSlider("BunnyHopDelay", {Text = T("Bunny Hop Delay (s)"), Default = 0.2, Min = 0, Max = 3, Rounding = 2})
 
     local FlyMaid = MaidClass.new()
     ModuleMaid:GiveTask(FlyMaid)
     local flySpeed = 5
 
-    MainFlyGB:AddToggle("Fly", {Text="Enable Fly", Default=false, Callback=newcclosure(function(v)
+    MainFlyGB:AddToggle("Fly", {Text=T("Enable Fly"), Default=false, Callback=newcclosure(function(v)
         if v then MovementManager.StartFlying(FlyMaid, flySpeed) else FlyMaid:DoCleaning() end
     end)})
     Toggles.Fly:AddKeyPicker("FlyKeybind", {Default="F", Mode="Toggle", Text="Fly", SyncToggleState=true})
-    MainFlyGB:AddSlider("FlySpeed", {Text="Fly Speed", Default=5, Min=1, Max=75, Rounding=0, Callback=newcclosure(function(v) flySpeed = v end)})
+    MainFlyGB:AddSlider("FlySpeed", {Text=T("Fly Speed"), Default=5, Min=1, Max=75, Rounding=0, Callback=newcclosure(function(v) flySpeed = v end)})
 
     ModuleMaid:GiveTask(LocalPlayer.CharacterAdded:Connect(newcclosure(function(c)
         if Toggles.Fly.Value then task.wait(0.5) MovementManager.StartFlying(FlyMaid, flySpeed) end
@@ -166,14 +167,14 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         ["Map Voting #4"] = Vector3.new(166, 4, -333),
     }
 
-    MainOtherGB:AddButton("Teleport (Cabin)", newcclosure(function() MovementManager.SmartTeleport(TeleportLocations.Cabin) end))
+    MainOtherGB:AddButton(T("Teleport (Cabin)"), newcclosure(function() MovementManager.SmartTeleport(TeleportLocations.Cabin) end))
     MainOtherGB:AddDivider()
-    MainOtherGB:AddButton("Teleport (Map Voting #1)", newcclosure(function() MovementManager.SmartTeleport(TeleportLocations["Map Voting #1"]) end))
-    MainOtherGB:AddButton("Teleport (Map Voting #2)", newcclosure(function() MovementManager.SmartTeleport(TeleportLocations["Map Voting #2"]) end))
-    MainOtherGB:AddButton("Teleport (Map Voting #3)", newcclosure(function() MovementManager.SmartTeleport(TeleportLocations["Map Voting #3"]) end))
-    MainOtherGB:AddButton("Teleport (Map Voting #4)", newcclosure(function() MovementManager.SmartTeleport(TeleportLocations["Map Voting #4"]) end))
+    MainOtherGB:AddButton(T("Teleport (Map Voting #1)"), newcclosure(function() MovementManager.SmartTeleport(TeleportLocations["Map Voting #1"]) end))
+    MainOtherGB:AddButton(T("Teleport (Map Voting #2)"), newcclosure(function() MovementManager.SmartTeleport(TeleportLocations["Map Voting #2"]) end))
+    MainOtherGB:AddButton(T("Teleport (Map Voting #3)"), newcclosure(function() MovementManager.SmartTeleport(TeleportLocations["Map Voting #3"]) end))
+    MainOtherGB:AddButton(T("Teleport (Map Voting #4)"), newcclosure(function() MovementManager.SmartTeleport(TeleportLocations["Map Voting #4"]) end))
     
-    MainOtherGB:AddButton("Teleport (Beast)", newcclosure(function()
+    MainOtherGB:AddButton(T("Teleport (Beast)"), newcclosure(function()
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Hammer") then
                 local root = player.Character:FindFirstChild("HumanoidRootPart")
@@ -183,9 +184,9 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
     end))
 
     local survivorNames = {"No Survivors"}
-    MainOtherGB:AddDropdown("SurvivorDropdown", {Text = "Survivors", Values = {}, Default = 1, Searchable = true, Scrollable = true})
+    MainOtherGB:AddDropdown("SurvivorDropdown", {Text = T("Survivors"), Values = {}, Default = 1, Searchable = true, Scrollable = true})
 
-    MainOtherGB:AddButton("Teleport (Survivor)", newcclosure(function()
+    MainOtherGB:AddButton(T("Teleport (Survivor)"), newcclosure(function()
         local target = Options.SurvivorDropdown and Options.SurvivorDropdown.Value
         if target and target ~= "No Survivors" then
             local player = Players:FindFirstChild(target)
@@ -196,9 +197,9 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
     end))
 
     local computerNames = {"No Computers"}
-    MainOtherGB:AddDropdown("ComputerDropdown", {Text = "Computers", Values = {}, Default = 1, Searchable = true, Scrollable = true})
+    MainOtherGB:AddDropdown("ComputerDropdown", {Text = T("Computers"), Values = {}, Default = 1, Searchable = true, Scrollable = true})
 
-    MainOtherGB:AddButton("Teleport (Computer)", newcclosure(function()
+    MainOtherGB:AddButton(T("Teleport (Computer)"), newcclosure(function()
         local target = Options.ComputerDropdown and Options.ComputerDropdown.Value
         if target and target ~= "No Computers" then
             local index = tonumber(target:match("#(%d+)"))
@@ -208,11 +209,11 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         end
     end))
 
-    MainOtherGB:AddLabel("Other")
+    MainOtherGB:AddLabel(T("Other"))
     MainOtherGB:AddDivider()
-    MainOtherGB:AddDropdown("TeleportType", {Text = "Teleport Type", Values = {"Instant (TP)", "Slow (Tween)"}, Default = 1})
-    MainOtherGB:AddSlider("TweenSpeed", {Text = "Tween Speed (Studs/s)", Default = 100, Min = 1, Max = 250, Rounding = 0})
-    MainOtherGB:AddToggle("NoclipOnTween", {Text = "Noclip On Tween", Default = true})
+    MainOtherGB:AddDropdown("TeleportType", {Text = T("Teleport Type"), Values = {"Instant (TP)", "Slow (Tween)"}, Default = 1})
+    MainOtherGB:AddSlider("TweenSpeed", {Text = T("Tween Speed (Studs/s)"), Default = 100, Min = 1, Max = 250, Rounding = 0})
+    MainOtherGB:AddToggle("NoclipOnTween", {Text = T("Noclip On Tween"), Default = true})
 
     local ApplyCharacterMods = newcclosure(function()
         local char = LocalPlayer.Character
