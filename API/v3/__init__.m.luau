@@ -66,6 +66,11 @@ end
 local MaidClass = unxgmfu(BaseUrl .. "maid.m.luau")
 if not MaidClass then return end
 
+local Translator = unxgmfu(BaseUrl .. "translator.m.luau")
+if Translator then
+    Translator.Init()
+end
+
 local Window = Library:CreateWindow({
     Title = "UNXHub | FTF",
     Footer = "Version: " .. (getgenv().unxshared and getgenv().unxshared.version or "Modular") .. ", Game: " .. (getgenv().unxshared and getgenv().unxshared.gamename or "Unknown") .. ", Player: " .. (getgenv().unxshared and getgenv().unxshared.playername or "Unknown"),
@@ -74,11 +79,12 @@ local Window = Library:CreateWindow({
     ShowCustomCursor = true,
 })
 
+local T = Translator.T
 local Tabs = {
-    Main = Window:AddTab("Main", "user"),
-    Visuals = Window:AddTab("Visuals", "eye"),
-    Features = Window:AddTab("Features", "bug"),
-    ["UI Settings"] = Window:AddTab("UI Settings", "settings"),
+    Main = Window:AddTab(T("Main"), "user"),
+    Visuals = Window:AddTab(T("Visuals"), "eye"),
+    Features = Window:AddTab(T("Features"), "bug"),
+    ["UI Settings"] = Window:AddTab(T("UI Settings"), "settings"),
 }
 
 local RootMaid = MaidClass.new()
@@ -127,10 +133,10 @@ if Scheduler then
     end)))
 end
 
-unxgmfu(BaseUrl .. "main.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
-unxgmfu(BaseUrl .. "visuals.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
-unxgmfu(BaseUrl .. "features.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
-unxgmfu(BaseUrl .. "uisettings.t.luau", Library, Tabs, RootMaid, SaveManager, ThemeManager)
+unxgmfu(BaseUrl .. "main.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler, Translator)
+unxgmfu(BaseUrl .. "visuals.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler, Translator)
+unxgmfu(BaseUrl .. "features.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler, Translator)
+unxgmfu(BaseUrl .. "uisettings.t.luau", Library, Tabs, RootMaid, SaveManager, ThemeManager, Translator)
 
 Library:OnUnload(newcclosure(function()
     if getgenv().unxshared then getgenv().unxshared.isloaded = false end
