@@ -1,21 +1,22 @@
-return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler)
+return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler, Translator)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local LocalPlayer = Players.LocalPlayer
     local Options = Library.Options
     local Toggles = Library.Toggles
+    local T = Translator.T
     local BindModule = loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Bind.lua"))()
 
     local ModuleMaid = MaidClass.new()
     RootMaid:GiveTask(ModuleMaid)
     RootMaid:GiveTask(newcclosure(function() if BindModule then BindModule:Kill() end end))
 
-    local FeaturesGB = Tabs.Features:AddLeftGroupbox("Features", "zap")
+    local FeaturesGB = Tabs.Features:AddLeftGroupbox(T("Features"), "zap")
     
-    FeaturesGB:AddToggle("NoPCError", {Text = "No PC Error", Default = false})
+    FeaturesGB:AddToggle("NoPCError", {Text = T("No PC Error"), Default = false})
     FeaturesGB:AddToggle("NoPCErrorBind", {
-        Text = "No PC Error BindButton", Default = false,
+        Text = T("No PC Error BindButton"), Default = false,
         Callback = newcclosure(function(v)
             if not BindModule then return end
             if v then BindModule:AddToggleBB("No PC Err", newcclosure(function() if Toggles.NoPCError then Toggles.NoPCError:SetValue(true) end end), newcclosure(function() if Toggles.NoPCError then Toggles.NoPCError:SetValue(false) end end))
@@ -23,11 +24,11 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         end)
     })
     FeaturesGB:AddLabel("Credits Of 'No PC Error' Feature Goes To: Yarhm | Created By Imperial! :D")
-    FeaturesGB:AddButton({Text = "Execute Yarhm", Func = newcclosure(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Joystickplays/psychic-octo-invention/main/source/yarhm/1.19/yarhm.lua", false))() end)})
+    FeaturesGB:AddButton({Text = T("Execute Yarhm"), Func = newcclosure(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Joystickplays/psychic-octo-invention/main/source/yarhm/1.19/yarhm.lua", false))() end)})
 
-    FeaturesGB:AddToggle("DoPCRemotely", {Text = "Bigger PC Range", Default = false})
+    FeaturesGB:AddToggle("DoPCRemotely", {Text = T("Bigger PC Range"), Default = false})
     FeaturesGB:AddToggle("DoPCRemotelyBind", {
-        Text = "Bigger PC Range BindButton", Default = false,
+        Text = T("Bigger PC Range BindButton"), Default = false,
         Callback = newcclosure(function(v)
             if not BindModule then return end
             if v then BindModule:AddToggleBB("Big Range", newcclosure(function() if Toggles.DoPCRemotely then Toggles.DoPCRemotely:SetValue(true) end end), newcclosure(function() if Toggles.DoPCRemotely then Toggles.DoPCRemotely:SetValue(false) end end))
@@ -124,7 +125,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         return OldNameCall(Self, unpack(Args))
     end))
 
-    local FlingGroupBox = Tabs.Features:AddLeftGroupbox("Fling", "wind")
+    local FlingGroupBox = Tabs.Features:AddLeftGroupbox(T("Fling"), "wind")
     local flingTime = 5
     local flingForce = 50000
 
@@ -238,8 +239,8 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         return list
     end)
 
-    FlingGroupBox:AddDropdown("FlingPlayer", {Text = "Select Players", Values = getPlayerList(), Multi = true, Searchable = true})
-    FlingGroupBox:AddButton({Text="Fling Selected", Func=newcclosure(function()
+    FlingGroupBox:AddDropdown("FlingPlayer", {Text = T("Select Players"), Values = getPlayerList(), Multi = true, Searchable = true})
+    FlingGroupBox:AddButton({Text=T("Fling Selected"), Func=newcclosure(function()
         if not Options.FlingPlayer.Value then return end
         for selectedPlayer, isSelected in pairs(Options.FlingPlayer.Value) do
             if isSelected then
@@ -248,12 +249,12 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
             end
         end
     end)})
-    FlingGroupBox:AddButton({Text="Fling All", Func=newcclosure(function()
+    FlingGroupBox:AddButton({Text=T("Fling All"), Func=newcclosure(function()
         for _, targetPlayer in ipairs(Players:GetPlayers()) do
             if targetPlayer ~= LocalPlayer and targetPlayer.Character then Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5) end
         end
     end)})
-    FlingGroupBox:AddButton({Text="Fling Beast", Func=newcclosure(function()
+    FlingGroupBox:AddButton({Text=T("Fling Beast"), Func=newcclosure(function()
         for _, targetPlayer in ipairs(Players:GetPlayers()) do
             if targetPlayer ~= LocalPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Hammer") then
                 Fling(targetPlayer, flingTime, flingForce); task.wait(flingTime + 0.5); break
@@ -261,7 +262,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         end
     end)})
     FlingGroupBox:AddDivider()
-    FlingGroupBox:AddToggle("FlingBeastBind", {Text = "Fling Beast Bind Button", Default = false, Callback = newcclosure(function(v)
+    FlingGroupBox:AddToggle("FlingBeastBind", {Text = T("Fling Beast Bind Button"), Default = false, Callback = newcclosure(function(v)
         if not BindModule then return end
         if v then BindModule:BindB("Fling Beast", newcclosure(function()
             for _, targetPlayer in ipairs(Players:GetPlayers()) do
@@ -272,23 +273,23 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         end)) else BindModule:DelBindB("Fling Beast") end
     end)})
     FlingGroupBox:AddDivider()
-    FlingGroupBox:AddSlider("FlingTime", {Text="Fling Time", Default=5, Min=1, Max=25, Rounding=1, Callback=newcclosure(function(v) flingTime = v end)})
-    FlingGroupBox:AddSlider("FlingForce", {Text="Fling Force", Default=50000, Min=1, Max=9999999, Rounding=0, Callback=newcclosure(function(v) flingForce = v end)})
+    FlingGroupBox:AddSlider("FlingTime", {Text=T("Fling Time"), Default=5, Min=1, Max=25, Rounding=1, Callback=newcclosure(function(v) flingTime = v end)})
+    FlingGroupBox:AddSlider("FlingForce", {Text=T("Fling Force"), Default=50000, Min=1, Max=9999999, Rounding=0, Callback=newcclosure(function(v) flingForce = v end)})
     
     ModuleMaid:GiveTask(Players.PlayerAdded:Connect(newcclosure(function() if Options.FlingPlayer then Options.FlingPlayer:SetValues(getPlayerList()) end end)))
     ModuleMaid:GiveTask(Players.PlayerRemoving:Connect(newcclosure(function() if Options.FlingPlayer then Options.FlingPlayer:SetValues(getPlayerList()) end end)))
 
-    local FunMiscGB = Tabs.Features:AddRightGroupbox("Fun & Misc", "confetti_ball")
-    FunMiscGB:AddToggle("RGBAsync", {Text = "RGB ASync", Default = false})
-    FunMiscGB:AddSlider("RGBAsyncSpeed", {Text = "RGB Async Speed", Default = 5, Min = 1, Max = 10, Rounding = 0})
+    local FunMiscGB = Tabs.Features:AddRightGroupbox(T("Fun & Misc"), "confetti_ball")
+    FunMiscGB:AddToggle("RGBAsync", {Text = T("RGB ASync"), Default = false})
+    FunMiscGB:AddSlider("RGBAsyncSpeed", {Text = T("RGB Async Speed"), Default = 5, Min = 1, Max = 10, Rounding = 0})
     FunMiscGB:AddDivider()
-    FunMiscGB:AddToggle("RGBHammer", {Text = "RGB Hammer", Default = false})
-    FunMiscGB:AddToggle("RGBLight", {Text = "RGB Light", Default = false})
-    FunMiscGB:AddSlider("RGBHammerSpeed", {Text = "RGB Hammer Speed", Default = 5, Min = 1, Max = 10, Rounding = 0})
-    FunMiscGB:AddSlider("RGBLightSpeed", {Text = "RGB Light Speed", Default = 5, Min = 1, Max = 10, Rounding = 0})
-    FunMiscGB:AddDropdown("RGBMethod", {Text = "RGB Method", Values = {"HSV", "RGB"}, Default = 1})
+    FunMiscGB:AddToggle("RGBHammer", {Text = T("RGB Hammer"), Default = false})
+    FunMiscGB:AddToggle("RGBLight", {Text = T("RGB Light"), Default = false})
+    FunMiscGB:AddSlider("RGBHammerSpeed", {Text = T("RGB Hammer Speed"), Default = 5, Min = 1, Max = 10, Rounding = 0})
+    FunMiscGB:AddSlider("RGBLightSpeed", {Text = T("RGB Light Speed"), Default = 5, Min = 1, Max = 10, Rounding = 0})
+    FunMiscGB:AddDropdown("RGBMethod", {Text = T("RGB Method"), Values = {"HSV", "RGB"}, Default = 1})
     FunMiscGB:AddDivider()
-    FunMiscGB:AddButton("Reset", newcclosure(function()
+    FunMiscGB:AddButton(T("Reset"), newcclosure(function()
         if Toggles.RGBAsync then Toggles.RGBAsync:SetValue(false) end
         if Toggles.RGBHammer then Toggles.RGBHammer:SetValue(false) end
         if Toggles.RGBLight then Toggles.RGBLight:SetValue(false) end
@@ -297,7 +298,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         if Options.RGBLightSpeed then Options.RGBLightSpeed:SetValue(5) end
         if Options.RGBMethod then Options.RGBMethod:SetValue("HSV") end
     end))
-    FunMiscGB:AddButton("Rejoin", newcclosure(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end))
+    FunMiscGB:AddButton(T("Rejoin"), newcclosure(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end))
 
     local RGB = {HammerHighlight = nil, LastHammerUpdate = 0, LastLightUpdate = 0}
     local GetRGBColor = newcclosure(function(method, speed)
