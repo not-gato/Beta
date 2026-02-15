@@ -10,6 +10,12 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
     local VisualsMaid = MaidClass.new()
     RootMaid:GiveTask(VisualsMaid)
 
+    local fontNames = {}
+    for _, font in ipairs(Enum.Font:GetEnumItems()) do
+        table.insert(fontNames, font.Name)
+    end
+    table.sort(fontNames)
+
     local VisualsTabbox = Tabs.Visuals:AddLeftTabbox()
     local ESPTab = VisualsTabbox:AddTab(T("ESPs"), "scan")
 
@@ -41,7 +47,8 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
     ConfigTab:AddSlider("RainbowSpeed", {Text = T("Rainbow Speed"), Default = 1, Min = 1, Max = 10, Rounding = 1})
     ConfigTab:AddLabel(T("Other")); ConfigTab:AddDivider()
     ConfigTab:AddSlider("ESPTextSize", {Text = T("ESP Text Size"), Default = 16, Min = 1, Max = 50, Rounding = 0})
-    ConfigTab:AddSlider("TracerThickness", {Text = T("Tracer Thickness"), Default = 2, Min = 1, Max = 10, Rounding = 0})
+    ConfigTab:AddDropdown("ESPFont", {Text = T("ESP Font"), Values = fontNames, Default = "BuilderSans"})
+    ConfigTab:AddSlider("TracerThickness", {Text = T("Tracer Thickness"), Default = 1, Min = 1, Max = 10, Rounding = 0})
     ConfigTab:AddSlider("OutlineFillTransparency", {Text = T("Outline Fill (%)"), Default = 100, Min = 0, Max = 100, Rounding = 0})
     ConfigTab:AddSlider("OutlineTransparency", {Text = T("Outline Transp (%)"), Default = 0, Min = 0, Max = 100, Rounding = 0})
     ConfigTab:AddToggle("AutoReloadESP", {Text = T("Auto Re-Load ESP"), Default = false})
@@ -87,7 +94,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
             return table.remove(ESP_Cache.Tracers)
         end
         local l = Drawing.new("Line")
-        l.Visible = false; l.Thickness = 2; l.Transparency = 1
+        l.Visible = false; l.Thickness = 1; l.Transparency = 1
         return l
     end
 
@@ -157,6 +164,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         
         local showDist = Toggles.ShowDistance.Value
         local espTextSize = Options.ESPTextSize.Value
+        local espFont = Enum.Font[Options.ESPFont.Value] or Enum.Font.BuilderSans
         local tracerThickness = Options.TracerThickness.Value
         local fillTransp = Options.OutlineFillTransparency.Value / 100
         local outlineTransp = Options.OutlineTransparency.Value / 100
@@ -214,6 +222,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
                     local txt = billboard:FindFirstChild("TextLabel")
                     if txt then
                         txt.TextSize = espTextSize
+                        txt.Font = espFont
                         txt.Text = "Computer #"..i..(showDist and " ["..math.floor((camPos-pos).Magnitude).."]" or "")..(isError and " (ERROR)" or (isCompleted and " (COMPLETED)" or ""))
                         txt.TextColor3 = color
                         local stroke = txt:FindFirstChild("UIStroke")
@@ -267,6 +276,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
                     local txt = billboard:FindFirstChild("TextLabel")
                     if txt then
                         txt.TextSize = espTextSize
+                        txt.Font = espFont
                         txt.Text = "Freeze Pod #"..i..(showDist and " ["..math.floor((camPos-pos).Magnitude).."]" or "")
                         txt.TextColor3 = color
                         local stroke = txt:FindFirstChild("UIStroke")
@@ -325,6 +335,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
                         local txt = billboard:FindFirstChild("TextLabel")
                         if txt then
                             txt.TextSize = espTextSize
+                            txt.Font = espFont
                             txt.Text = player.DisplayName..(isBeast and " [BEAST]" or " [SURV]")..(showDist and " ["..math.floor((camPos-root.Position).Magnitude).."]" or "")
                             txt.TextColor3 = color
                             local stroke = txt:FindFirstChild("UIStroke")
