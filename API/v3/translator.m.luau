@@ -1,7 +1,5 @@
-return function(addlog)
+return newcclosure(function()
     local LocalizationService = game:GetService("LocalizationService")
-    local HttpService = game:GetService("HttpService")
-    
     local Translator = {}
     local LangData = {}
     local DefaultLangData = {}
@@ -110,7 +108,6 @@ return function(addlog)
         content = content:gsub("^%s+", ""):gsub("%s+$", "")
         local success, result = pcall(decodeJSON, content)
         if not success then
-            addlog("JSON Parser Error: " .. tostring(result), "UNX_JSONPARSER")
             return {}
         end
         if type(result) == "table" and next(result) then
@@ -201,4 +198,4 @@ return function(addlog)
     end
 
     return Translator
-end
+end)
