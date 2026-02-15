@@ -1,25 +1,56 @@
-return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager)
+return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager, Translator)
     local UserInputService = game:GetService("UserInputService")
     local TweenService = game:GetService("TweenService")
+    local T = Translator.T
     local BindModule = loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Bind.lua"))()
     
-    local MenuGroup = Tabs["UI Settings"]:AddLeftGroupbox("Menu", "wrench")
-    MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", {Default = "RightShift", NoUI = true, Text = "Menu keybind"})
-    MenuGroup:AddButton("Unload", newcclosure(function() Library:Unload() end))
+    local MenuGroup = Tabs["UI Settings"]:AddLeftGroupbox(T("Menu"), "wrench")
+    MenuGroup:AddLabel(T("Menu bind")):AddKeyPicker("MenuKeybind", {Default = "RightShift", NoUI = true, Text = "Menu keybind"})
+    MenuGroup:AddButton(T("Unload"), newcclosure(function() Library:Unload() end))
     MenuGroup:AddDivider()
-    MenuGroup:AddButton("Reset Bind Buttons Position", newcclosure(function() if BindModule then BindModule:ResetPos() end end))
+    MenuGroup:AddButton(T("Reset Bind Buttons Position"), newcclosure(function() if BindModule then BindModule:ResetPos() end end))
     MenuGroup:AddDropdown("BindShape", {
-        Text = "Bind Buttons Shape", Values = {"Circle", "Square", "Rounded"}, Default = 1,
+        Text = T("Bind Buttons Shape"), Values = {"Circle", "Square", "Rounded"}, Default = 1,
         Callback = newcclosure(function(v) if BindModule then BindModule:MakeAllShape(v=="Circle" and 0 or v=="Square" and 1 or 2) end end)
     })
-    MenuGroup:AddSlider("BindSize", {Text = "Bind Button Size", Default = 1, Min = 0.1, Max = 10, Rounding = 1, Callback = newcclosure(function(v) if BindModule then BindModule:SetSizeB(v) end end)})
-    MenuGroup:AddButton("Apply Bind Button Configs", newcclosure(function()
+    MenuGroup:AddSlider("BindSize", {Text = T("Bind Button Size"), Default = 1, Min = 0.1, Max = 10, Rounding = 1, Callback = newcclosure(function(v) if BindModule then BindModule:SetSizeB(v) end end)})
+    MenuGroup:AddButton(T("Apply Bind Button Configs"), newcclosure(function()
         local shape = Library.Options.BindShape.Value
         if BindModule then
             BindModule:MakeAllShape(shape=="Circle" and 0 or shape=="Square" and 1 or 2)
             BindModule:SetSizeB(Library.Options.BindSize.Value)
         end
     end))
+
+    local reverseLang = {}
+    local langNames = {}
+    local LangCodes = Translator.GetLangCodes()
+    local LangURLs = Translator.GetLangURLs()
+    local currentLangCode = Translator.GetLangCode()
+    
+    for name, code in pairs(LangCodes) do
+        reverseLang[code] = name
+        table.insert(langNames, name)
+    end
+    table.sort(langNames)
+
+    MenuGroup:AddDivider()
+    MenuGroup:AddDropdown("LanguageSelect", {
+        Values = langNames,
+        Default = reverseLang[currentLangCode] or "English",
+        Text = T("Language"),
+        Callback = newcclosure(function(val)
+            local code = LangCodes[val]
+            if code and code ~= currentLangCode then
+                writefile("unxhub/language_config.txt", code)
+                if not isfile("unxhub/cache/lang_" .. code .. ".json") then
+                    local s, r = pcall(function() return game:HttpGet(LangURLs[code]) end)
+                    if s then writefile("unxhub/cache/lang_" .. code .. ".json", r) end
+                end
+                Library:Notify("Language changed to " .. val .. ". Please restart the script to apply.", 5)
+            end
+        end)
+    })
 
     Library.ToggleKeybind = Library.Options.MenuKeybind
     ThemeManager:SetLibrary(Library)
@@ -119,14 +150,14 @@ return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager)
     RootMaid:GiveTask(workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateButtonSize))
 
     local showToggle = isfile("showtoggle.unx")
-    MenuGroup:AddToggle("CustomToggle", {Text = "Custom Toggle", Default = showToggle, Callback = newcclosure(function(v) 
+    MenuGroup:AddToggle("CustomToggle", {Text = T("Custom Toggle"), Default = showToggle, Callback = newcclosure(function(v) 
         if v then writefile("showtoggle.unx", "") else if isfile("showtoggle.unx") then delfile("showtoggle.unx") end end
         button.Visible = v 
     end)})
 
     local toggleSize = 100
     if isfile("togglesize.unx") then pcall(newcclosure(function() toggleSize = tonumber(readfile("togglesize.unx")) or 100 end)) end
-    MenuGroup:AddSlider("CustomToggleSize", {Text = "Custom Toggle Size (%)", Default = toggleSize, Min = 50, Max = 200, Rounding = 0, Callback = newcclosure(function(v)
+    MenuGroup:AddSlider("CustomToggleSize", {Text = T("Custom Toggle Size (%)"), Default = toggleSize, Min = 50, Max = 200, Rounding = 0, Callback = newcclosure(function(v)
         writefile("togglesize.unx", tostring(v)); updateButtonSize()
     end)})
     
