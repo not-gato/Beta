@@ -1,4 +1,4 @@
-getgenv().isunx = "this is unxhub. | anti tamper: Ab5!%QytR*1&"
+getgenv().isunx = "this is unxhub. | anti tamper: ahQ%o_q=8mQQt_[QAk"
 
 local Repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local BaseUrl = "https://raw.githubusercontent.com/not-gato/Beta/main/API/v3/"
