@@ -1,4 +1,4 @@
-return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager, Translator)
+return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager, Translator, Scheduler)
     local UserInputService = game:GetService("UserInputService")
     local TweenService = game:GetService("TweenService")
     local T = Translator.T
@@ -19,6 +19,74 @@ return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager, 
         if BindModule then
             BindModule:MakeAllShape(shape=="Circle" and 0 or shape=="Square" and 1 or 2)
             BindModule:SetSizeB(Library.Options.BindSize.Value)
+        end
+    end))
+
+    -- Performance Section
+    local PerfGroup = Tabs["UI Settings"]:AddLeftGroupbox(T("Performance"), "bar_chart")
+    local SavedRGBState = {}
+
+    PerfGroup:AddToggle("LowEndDevice", {
+        Text = T("Low-End Device Mode"),
+        Default = false,
+        Callback = newcclosure(function(val)
+            if Scheduler then
+                Scheduler.Throttle = val and 0.1 or 0
+            end
+            
+            if val then
+                -- Disable RGB
+                for _, toggle in pairs(Library.Toggles) do
+                    local name = toggle.Idx or ""
+                    if (string.find(name, "Rainbow") or string.find(name, "RGB")) and toggle.Value then
+                        SavedRGBState[name] = true
+                        toggle:SetValue(false)
+                    end
+                end
+            else
+                -- Restore RGB
+                for name, _ in pairs(SavedRGBState) do
+                    if Library.Toggles[name] then
+                        Library.Toggles[name]:SetValue(true)
+                    end
+                end
+                table.clear(SavedRGBState)
+            end
+        end)
+    })
+
+    PerfGroup:AddDropdown("RGBSmoothness", {
+        Text = T("RGB Smoothness"),
+        Values = {"Prioritize Smoothness", "Balanced", "Prioritize Performance", "No Smoothness"},
+        Default = 1
+    })
+
+    PerfGroup:AddToggle("EnableRGBSmoothness", {
+        Text = T("Enable RGB Smoothness Overwrite"),
+        Default = false,
+        Callback = newcclosure(function(val)
+            if not Scheduler then return end
+            if not val then
+                Scheduler.RGBThrottle = 0
+                return
+            end
+            
+            local mode = Library.Options.RGBSmoothness.Value
+            if mode == "Prioritize Smoothness" then
+                Scheduler.RGBThrottle = 0
+            elseif mode == "Balanced" then
+                Scheduler.RGBThrottle = 1/30 -- ~0.033
+            elseif mode == "Prioritize Performance" then
+                Scheduler.RGBThrottle = 1/15 -- ~0.066
+            elseif mode == "No Smoothness" then
+                Scheduler.RGBThrottle = 0.2 -- Choppy steps
+            end
+        end)
+    })
+
+    Library.Options.RGBSmoothness:OnChanged(newcclosure(function()
+        if Library.Toggles.EnableRGBSmoothness.Value then
+             Library.Toggles.EnableRGBSmoothness:SetValue(true) -- Retrigger callback
         end
     end))
 
