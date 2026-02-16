@@ -11,6 +11,7 @@ return newcclosure(function()
         ["Español"] = "es-es",
         ["Filipino"] = "fil-tg",
         ["Français"] = "fr-fr",
+        ["Bahasa Indonesia"] = "id-id",
         ["Português"] = "pt-br",
         ["Tiếng Việt"] = "vi",
         ["Русский"] = "ru"
@@ -24,7 +25,8 @@ return newcclosure(function()
         ["vi"] = "https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v3/Lang/vi.json",
         ["fil-tg"] = "https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v3/Lang/fil-tg.json",
         ["fr-fr"] = "https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v3/Lang/fr-fr.json",
-        ["de-de"] = "https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v3/Lang/de-de.json"
+        ["de-de"] = "https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v3/Lang/de-de.json",
+        ["id-id"] = "https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v3/Lang/id-id.json"
     }
 
     local function decodeJSON(str)
@@ -140,6 +142,7 @@ return newcclosure(function()
                         elseif prefix == "fil" and LangURLs["fil-tg"] then currentLangCode = "fil-tg"
                         elseif prefix == "fr" and LangURLs["fr-fr"] then currentLangCode = "fr-fr"
                         elseif prefix == "de" and LangURLs["de-de"] then currentLangCode = "de-de"
+                        elseif prefix == "id" and LangURLs["id-id"] then currentLangCode = "id-id"
                         end
                     end
                 end
