@@ -235,7 +235,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
 
     local getPlayerList = newcclosure(function()
         local list = {}
-        for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(list, p.Name) end end
+        for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer and table.find(list, p.Name) == nil then table.insert(list, p.Name) end end
         return list
     end)
 
@@ -308,6 +308,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
 
     if Scheduler then
         ModuleMaid:GiveTask(Scheduler.Interval(0.05, newcclosure(function()
+            -- Add check for GlobalThrottle/RGBThrottle logic here if needed, or rely on Scheduler.Interval respecting Scheduler.Throttle
             local char = LocalPlayer.Character
             if not char then return end
             if Toggles.RGBHammer and Toggles.RGBHammer.Value then
