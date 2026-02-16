@@ -54,7 +54,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
     ConfigTab:AddToggle("AutoReloadESP", {Text = T("Auto Re-Load ESP"), Default = false})
 
     local VisualsGameCamGB = Tabs.Visuals:AddRightGroupbox(T("Game & Camera"), "camera")
-    VisualsGameCamGB:AddSlider("FOVSlider", {Text = T("FOV"), Default = 80, Min = 80, Max = 120, Rounding = 0})
+    VisualsGameCamGB:AddSlider("FOVSlider", {Text = T("Field of View"), Default = 80, Min = 80, Max = 120, Rounding = 0})
     VisualsGameCamGB:AddToggle("Fullbright", {Text = T("Full Bright"), Default = false}):AddColorPicker("FullbrightColor", {Default = Color3.fromRGB(255,255,255)})
     VisualsGameCamGB:AddToggle("NoFog", {Text = T("No Fog"), Default = false})
 
@@ -148,7 +148,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         table.clear(ESP_Cache.Highlights)
     end))
 
-    ConfigTab:AddButton("Re-load ESPs", function() ClearAllESP() CacheManager:Update() end)
+    ConfigTab:AddButton(T("Re-load ESPs"), function() ClearAllESP() CacheManager:Update() end)
 
     local GetRainbow = newcclosure(function(speed) return Color3.fromHSV((tick() * ((speed or 1) / 10)) % 1, 1, 1) end)
     local GetDarkerColor = newcclosure(function(c) return Color3.new(math.clamp(c.R * 0.784, 0, 1), math.clamp(c.G * 0.784, 0, 1), math.clamp(c.B * 0.784, 0, 1)) end)
@@ -362,8 +362,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
     
     VisualsMaid:GiveTask(RunService.RenderStepped:Connect(function()
         local throttle = Scheduler.Throttle or 0
-        local rgbThrottle = Scheduler.RGBThrottle or 0
-        local limit = math.max(throttle, rgbThrottle)
+        local limit = throttle 
         if tick() - lastUpdateESP >= limit then
             lastUpdateESP = tick()
             UpdateESP()
