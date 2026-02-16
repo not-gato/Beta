@@ -2,6 +2,9 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass)
     local RunService = game:GetService("RunService")
     
     local Scheduler = {}
+    Scheduler.Throttle = 0 -- Global throttle in seconds
+    Scheduler.RGBThrottle = 0 -- Specific throttle for RGB features
+
     local SchedulerMaid = MaidClass.new()
     RootMaid:GiveTask(SchedulerMaid)
 
@@ -11,7 +14,9 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass)
         local now = os.clock()
         for i = #ActiveIntervals, 1, -1 do
             local taskObj = ActiveIntervals[i]
-            if not taskObj.Paused and (now - taskObj.LastRun >= taskObj.Rate) then
+            -- Calculate effective rate: max of defined Rate or Global Throttle
+            local effectiveRate = math.max(taskObj.Rate, Scheduler.Throttle)
+            if not taskObj.Paused and (now - taskObj.LastRun >= effectiveRate) then
                 taskObj.LastRun = now
                 task.spawn(taskObj.Callback)
             end
