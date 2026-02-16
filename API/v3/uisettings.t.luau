@@ -10,20 +10,20 @@ return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager, 
     MenuGroup:AddDivider()
     MenuGroup:AddButton(T("Reset Bind Buttons Position"), newcclosure(function() if BindModule then BindModule:ResetPos() end end))
     MenuGroup:AddDropdown("BindShape", {
-        Text = T("Bind Buttons Shape"), Values = {"Circle", "Square", "Rounded"}, Default = 1,
-        Callback = newcclosure(function(v) if BindModule then BindModule:MakeAllShape(v=="Circle" and 0 or v=="Square" and 1 or 2) end end)
+        Text = T("Bind Buttons Shape"), Values = {T("Circle"), T("Square"), T("Rounded")}, Default = 1,
+        Callback = newcclosure(function(v) if BindModule then BindModule:MakeAllShape(v==T("Circle") and 0 or v==T("Square") and 1 or 2) end end)
     })
     MenuGroup:AddSlider("BindSize", {Text = T("Bind Button Size"), Default = 1, Min = 0.1, Max = 10, Rounding = 1, Callback = newcclosure(function(v) if BindModule then BindModule:SetSizeB(v) end end)})
     MenuGroup:AddButton(T("Apply Bind Button Configs"), newcclosure(function()
         local shape = Library.Options.BindShape.Value
         if BindModule then
-            BindModule:MakeAllShape(shape=="Circle" and 0 or shape=="Square" and 1 or 2)
+            BindModule:MakeAllShape(shape==T("Circle") and 0 or shape==T("Square") and 1 or 2)
             BindModule:SetSizeB(Library.Options.BindSize.Value)
         end
     end))
 
     -- Performance Section
-    local PerfGroup = Tabs["UI Settings"]:AddLeftGroupbox(T("Performance"), "bar_chart")
+    local PerfGroup = Tabs["UI Settings"]:AddLeftGroupbox(T("Performance"), "rocket")
     local SavedRGBState = {}
 
     PerfGroup:AddToggle("LowEndDevice", {
@@ -36,8 +36,7 @@ return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager, 
             
             if val then
                 -- Disable RGB
-                for _, toggle in pairs(Library.Toggles) do
-                    local name = toggle.Idx or ""
+                for name, toggle in pairs(Library.Toggles) do
                     if (string.find(name, "Rainbow") or string.find(name, "RGB")) and toggle.Value then
                         SavedRGBState[name] = true
                         toggle:SetValue(false)
@@ -57,12 +56,12 @@ return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager, 
 
     PerfGroup:AddDropdown("RGBSmoothness", {
         Text = T("RGB Smoothness"),
-        Values = {"Prioritize Smoothness", "Balanced", "Prioritize Performance", "No Smoothness"},
+        Values = {T("Prioritize Smoothness"), T("Balanced"), T("Prioritize Performance"), T("No Smoothness")},
         Default = 1
     })
 
     PerfGroup:AddToggle("EnableRGBSmoothness", {
-        Text = T("Enable RGB Smoothness Overwrite"),
+        Text = T("Toggle RGB Smoothness Override"),
         Default = false,
         Callback = newcclosure(function(val)
             if not Scheduler then return end
@@ -72,13 +71,13 @@ return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager, 
             end
             
             local mode = Library.Options.RGBSmoothness.Value
-            if mode == "Prioritize Smoothness" then
+            if mode == T("Prioritize Smoothness") then
                 Scheduler.RGBThrottle = 0
-            elseif mode == "Balanced" then
+            elseif mode == T("Balanced") then
                 Scheduler.RGBThrottle = 1/30 -- ~0.033
-            elseif mode == "Prioritize Performance" then
+            elseif mode == T("Prioritize Performance") then
                 Scheduler.RGBThrottle = 1/15 -- ~0.066
-            elseif mode == "No Smoothness" then
+            elseif mode == T("No Smoothness") then
                 Scheduler.RGBThrottle = 0.2 -- Choppy steps
             end
         end)
