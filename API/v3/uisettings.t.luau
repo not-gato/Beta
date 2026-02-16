@@ -1,6 +1,8 @@
 return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager, Translator, Scheduler)
     local UserInputService = game:GetService("UserInputService")
     local TweenService = game:GetService("TweenService")
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
     local T = Translator.T
     local BindModule = loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Bind.lua"))()
     
@@ -22,7 +24,6 @@ return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager, 
         end
     end))
 
-    -- Performance Section
     local PerfGroup = Tabs["UI Settings"]:AddLeftGroupbox(T("Performance"), "rocket")
     local SavedRGBState = {}
 
@@ -35,7 +36,6 @@ return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager, 
             end
             
             if val then
-                -- Disable RGB
                 for name, toggle in pairs(Library.Toggles) do
                     if (string.find(name, "Rainbow") or string.find(name, "RGB")) and toggle.Value then
                         SavedRGBState[name] = true
@@ -43,7 +43,6 @@ return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager, 
                     end
                 end
             else
-                -- Restore RGB
                 for name, _ in pairs(SavedRGBState) do
                     if Library.Toggles[name] then
                         Library.Toggles[name]:SetValue(true)
@@ -74,18 +73,18 @@ return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager, 
             if mode == T("Prioritize Smoothness") then
                 Scheduler.RGBThrottle = 0
             elseif mode == T("Balanced") then
-                Scheduler.RGBThrottle = 1/30 -- ~0.033
+                Scheduler.RGBThrottle = 1/30
             elseif mode == T("Prioritize Performance") then
-                Scheduler.RGBThrottle = 1/15 -- ~0.066
+                Scheduler.RGBThrottle = 1/15
             elseif mode == T("No Smoothness") then
-                Scheduler.RGBThrottle = 0.2 -- Choppy steps
+                Scheduler.RGBThrottle = 0.2
             end
         end)
     })
 
     Library.Options.RGBSmoothness:OnChanged(newcclosure(function()
         if Library.Toggles.EnableRGBSmoothness.Value then
-             Library.Toggles.EnableRGBSmoothness:SetValue(true) -- Retrigger callback
+             Library.Toggles.EnableRGBSmoothness:SetValue(true)
         end
     end))
 
@@ -118,6 +117,16 @@ return newcclosure(function(Library, Tabs, RootMaid, SaveManager, ThemeManager, 
             end
         end)
     })
+
+    local credgroup = Tabs["UI Settings"]:AddRightGroupbox(T("Collaborators"), "users")
+    credgroup:AddLabel('<font color="rgb(0, 136, 255)"><b><u>@! CAT</u></b></font> • <font color="rgb(255,255,0)">Source Obfuscation & French Translation</font>', true)
+    credgroup:AddLabel('<font color="rgb(0, 136, 255)"><b><u>@! Axioria Solver</u></b></font> • <font color="rgb(255,255,0)">[FPS] FLICK | Silent Aim & Change Reload Feature</font>', true)
+    credgroup:AddDivider()
+    credgroup:AddLabel('<font color="rgb(0, 136, 255)"><b><u>@Fork</u></b></font> • <font color="rgb(255,255,0)">Vietnamese Translation</font>', true)
+    credgroup:AddLabel('<font color="rgb(0, 136, 255)"><b><u>@Pileton</u></b></font> • <font color="rgb(255,255,0)">German Translation</font>', true)
+    credgroup:AddLabel('<font color="rgb(0, 136, 255)"><b><u>@Decomp1le</u></b></font> • <font color="rgb(255,255,0)">Indonesia Translation</font>', true)
+    credgroup:AddDivider()
+    credgroup:AddLabel('<font color="rgb(0, 136, 255)"><b><u>@'.. (LocalPlayer and LocalPlayer.DisplayName or "Unknown") ..'</u></b></font> • <font color="rgb(255,255,0)">Using UNXHub!</font>', true)
 
     Library.ToggleKeybind = Library.Options.MenuKeybind
     ThemeManager:SetLibrary(Library)
