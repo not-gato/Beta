@@ -153,6 +153,7 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
     local GetRainbow = newcclosure(function(speed) return Color3.fromHSV((tick() * ((speed or 1) / 10)) % 1, 1, 1) end)
     local GetDarkerColor = newcclosure(function(c) return Color3.new(math.clamp(c.R * 0.784, 0, 1), math.clamp(c.G * 0.784, 0, 1), math.clamp(c.B * 0.784, 0, 1)) end)
 
+    local lastUpdateESP = 0
     local UpdateESP = newcclosure(function()
         local activeKeys = {}
         local cam = workspace.CurrentCamera
@@ -359,7 +360,15 @@ return newcclosure(function(Library, Tabs, RootMaid, CacheManager, MaidClass, Sc
         end
     end)
     
-    VisualsMaid:GiveTask(RunService.RenderStepped:Connect(UpdateESP))
+    VisualsMaid:GiveTask(RunService.RenderStepped:Connect(function()
+        local throttle = Scheduler.Throttle or 0
+        local rgbThrottle = Scheduler.RGBThrottle or 0
+        local limit = math.max(throttle, rgbThrottle)
+        if tick() - lastUpdateESP >= limit then
+            lastUpdateESP = tick()
+            UpdateESP()
+        end
+    end))
     
     if Scheduler then
         VisualsMaid:GiveTask(Scheduler.Interval(1, newcclosure(function()
