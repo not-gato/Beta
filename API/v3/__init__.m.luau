@@ -136,7 +136,7 @@ end
 unxgmfu(BaseUrl .. "main.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler, Translator)
 unxgmfu(BaseUrl .. "visuals.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler, Translator)
 unxgmfu(BaseUrl .. "features.t.luau", Library, Tabs, RootMaid, CacheManager, MaidClass, Scheduler, Translator)
-unxgmfu(BaseUrl .. "uisettings.t.luau", Library, Tabs, RootMaid, SaveManager, ThemeManager, Translator)
+unxgmfu(BaseUrl .. "uisettings.t.luau", Library, Tabs, RootMaid, SaveManager, ThemeManager, Translator, Scheduler)
 
 Library:OnUnload(newcclosure(function()
     if getgenv().unxshared then getgenv().unxshared.isloaded = false end
