@@ -1739,6 +1739,7 @@ SaveManager:BuildConfigSection(Tabs["UI Settings"])
 ThemeManager:ApplyToTab(Tabs["UI Settings"])
 
 SaveManager:LoadAutoloadConfig()
+
 CM:Init()
 ESPM:Init()
 LM:Init()
